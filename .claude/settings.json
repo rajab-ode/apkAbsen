@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(adb -s 1174554471104715 install -r \"d:\\\\CODING RAME\\\\absenFR\\\\absensi_app\\\\build\\\\app\\\\outputs\\\\flutter-apk\\\\app-release.apk\" 2>&1)",
+      "PowerShell(adb devices 2>&1)",
+      "PowerShell(adb -s 1174554471104715 uninstall com.smkn5kendari.absensi_app 2>&1)",
+      "PowerShell(adb -s 1174554471104715 shell pm clear com.smkn5kendari.absensi_app 2>&1)",
+      "PowerShell(adb -s 1174554471104715 install \"d:\\\\CODING RAME\\\\absenFR\\\\absensi_app\\\\build\\\\app\\\\outputs\\\\flutter-apk\\\\app-release.apk\" 2>&1)",
+      "Bash(adb -s 1174554471104715 install \"d:/CODING RAME/absenFR/absensi_app/build/app/outputs/flutter-apk/app-release.apk\")",
+      "Bash(adb -s 1174554471104715 install -r \"d:/CODING RAME/absenFR/absensi_app/build/app/outputs/flutter-apk/app-release.apk\")",
+      "Bash(adb -s RR8Y800EREH install -r \"d:/CODING RAME/absenFR/absensi_app/build/app/outputs/flutter-apk/app-release.apk\")",
+      "Bash(git init *)",
+      "Bash(git remote *)"
+    ]
+  }
+}

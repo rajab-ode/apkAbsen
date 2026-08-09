@@ -1,0 +1,4 @@
+PassengerNodejs /usr/local/bin/node
+PassengerStartupFile app.js
+PassengerAppType node
+PassengerAppRoot /home/username/public_html/api

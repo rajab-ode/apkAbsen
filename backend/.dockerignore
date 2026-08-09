@@ -1,0 +1,6 @@
+node_modules/
+.env
+__tests__/
+coverage/
+uploads/foto/*
+uploads/surat/*
