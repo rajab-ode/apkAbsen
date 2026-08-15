@@ -1,0 +1,44 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: absensi_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: absensi_smkn5
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  backend:
+    build: .
+    container_name: absensi_backend
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: absensi_smkn5
+      JWT_SECRET: smkn5_kendari_secret_2026
+      JWT_EXPIRES_IN: 7d
+      PORT: 3000
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+      - ./downloads:/app/downloads:ro
+
+volumes:
+  mysql_data:
+  uploads_data:

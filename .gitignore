@@ -1,0 +1,25 @@
+# Docs
+*.md
+*.docx
+*.pdf
+
+# Node
+backend/node_modules/
+backend/uploads/
+backend/downloads/
+
+# Flutter build
+absensi_app/build/
+absensi_app/.dart_tool/
+absensi_app/.flutter-plugins-dependencies
+absensi_app/.pub-cache/
+absensi_app/.pub/
+absensi_app/android/app/debug
+absensi_app/android/app/profile
+absensi_app/android/app/release
+absensi_app/.idea/
+absensi_app/*.iml
+
+# OS
+.DS_Store
+Thumbs.db

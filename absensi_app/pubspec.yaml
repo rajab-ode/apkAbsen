@@ -1,0 +1,57 @@
+name: absensi_app
+description: "Aplikasi Absensi Siswa Berbasis Mobile dengan Face Recognition - SMKN 5 Kendari"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Face Recognition
+  google_mlkit_face_detection: ^0.11.0
+  tflite_flutter: ^0.12.0
+
+  # Kamera
+  camera: ^0.10.5+9
+
+  # Networking
+  http: ^1.2.2
+
+  # Storage & Auth
+  flutter_secure_storage: ^9.2.2
+
+  # File & Kamera
+  file_picker: ^8.1.2
+  image_picker: ^1.1.2
+  open_file: ^3.3.2
+  path_provider: ^2.1.4
+
+  # State & Navigation
+  provider: ^6.1.2
+
+  # Image processing (untuk preprocessing TFLite input)
+  image: ^4.2.0
+
+  # Localization
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+
+  # Removed: go_router (unused)
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/models/
+    - assets/images/

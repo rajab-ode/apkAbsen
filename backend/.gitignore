@@ -1,0 +1,7 @@
+node_modules/
+.env
+.env.production
+uploads/foto/*
+uploads/surat/*
+!uploads/foto/.gitkeep
+!uploads/surat/.gitkeep
