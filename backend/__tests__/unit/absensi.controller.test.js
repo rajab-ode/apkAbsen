@@ -11,11 +11,14 @@ const mockRes = () => {
   return res;
 };
 
-// 128-dim unit vector helpers
-const unitVec = (dim) => { const v = new Array(128).fill(0); v[dim] = 1.0; return v; };
+// 192-dim unit vector helpers (matches MobileFaceNet embedding size used by the app)
+const unitVec = (dim) => { const v = new Array(192).fill(0); v[dim] = 1.0; return v; };
 const embedding = unitVec(0);
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  jest.resetAllMocks(); // clearAllMocks leaves unconsumed mockResolvedValueOnce queued, leaking into the next test
+  ctrl.invalidateEmbeddingCache(); // recognize() caches student embeddings in-memory; reset between tests
+});
 
 describe('absensiController.recognize', () => {
   test('returns 400 when embedding is missing', async () => {
@@ -24,7 +27,7 @@ describe('absensiController.recognize', () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  test('returns 400 when embedding is not 128-dim', async () => {
+  test('returns 400 when embedding is not 192-dim', async () => {
     const res = mockRes();
     await ctrl.recognize({ body: { embedding: [1, 2, 3] } }, res);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -55,7 +58,7 @@ describe('absensiController.recognize', () => {
     const stored = unitVec(0); // identical → similarity = 1.0
     db.query
       .mockResolvedValueOnce([[{ id_siswa: 1, nama_siswa: 'Andi', NIS: '001', foto: null, data_wajah: JSON.stringify(stored) }]])
-      .mockResolvedValueOnce([[{ id_absensi: 5 }]]); // already exists today
+      .mockResolvedValueOnce([{ affectedRows: 0 }]); // INSERT IGNORE skipped → already exists today
 
     const res = mockRes();
     await ctrl.recognize({ body: { embedding } }, res);
@@ -66,8 +69,7 @@ describe('absensiController.recognize', () => {
     const stored = unitVec(0);
     db.query
       .mockResolvedValueOnce([[{ id_siswa: 1, nama_siswa: 'Andi', NIS: '001', foto: 'foto/andi.jpg', data_wajah: JSON.stringify(stored) }]])
-      .mockResolvedValueOnce([[]])                    // no existing absensi today
-      .mockResolvedValueOnce([{ insertId: 10 }]);     // INSERT absensi
+      .mockResolvedValueOnce([{ affectedRows: 1, insertId: 10 }]); // INSERT IGNORE succeeded
 
     const res = mockRes();
     await ctrl.recognize({ body: { embedding } }, res);
@@ -88,8 +90,7 @@ describe('absensiController.recognize', () => {
         { id_siswa: 1, nama_siswa: 'Andi', NIS: '001', foto: null, data_wajah: JSON.stringify(matchStored) },
         { id_siswa: 2, nama_siswa: 'Budi', NIS: '002', foto: null, data_wajah: JSON.stringify(otherStored) },
       ]])
-      .mockResolvedValueOnce([[]])
-      .mockResolvedValueOnce([{ insertId: 11 }]);
+      .mockResolvedValueOnce([{ affectedRows: 1, insertId: 11 }]); // INSERT IGNORE succeeded
 
     const res = mockRes();
     await ctrl.recognize({ body: { embedding: targetEmbedding } }, res);

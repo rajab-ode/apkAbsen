@@ -260,4 +260,4 @@ async function downloadExcel(req, res) {
   }
 }
 
-module.exports = { recognize, getAll, getMySiswa, downloadPdf, downloadExcel };
+module.exports = { recognize, getAll, getMySiswa, downloadPdf, downloadExcel, invalidateEmbeddingCache };

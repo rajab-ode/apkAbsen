@@ -91,9 +91,9 @@ describe('siswaController.remove', () => {
 });
 
 describe('siswaController.registerFace', () => {
-  const validEmbedding = new Array(128).fill(0.1);
+  const validEmbedding = new Array(192).fill(0.1);
 
-  test('returns 400 when embedding is not 128-dim', async () => {
+  test('returns 400 when embedding is not 192-dim', async () => {
     const res = mockRes();
     await ctrl.registerFace({ params: { id: 1 }, body: { embedding: [1, 2, 3] } }, res);
     expect(res.status).toHaveBeenCalledWith(400);
@@ -108,7 +108,7 @@ describe('siswaController.registerFace', () => {
   test('returns 404 when siswa not found', async () => {
     db.query.mockResolvedValueOnce([[]]);
     const res = mockRes();
-    await ctrl.registerFace({ params: { id: 99 }, body: { embedding: validEmbedding } }, res);
+    await ctrl.registerFace({ params: { id: 99 }, body: { embedding: validEmbedding }, user: { role: 'admin' } }, res);
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
@@ -117,7 +117,7 @@ describe('siswaController.registerFace', () => {
       .mockResolvedValueOnce([[{ id_siswa: 1 }]])
       .mockResolvedValueOnce([{ affectedRows: 1 }]);
     const res = mockRes();
-    await ctrl.registerFace({ params: { id: 1 }, body: { embedding: validEmbedding } }, res);
+    await ctrl.registerFace({ params: { id: 1 }, body: { embedding: validEmbedding }, user: { role: 'admin' } }, res);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
   });
 });

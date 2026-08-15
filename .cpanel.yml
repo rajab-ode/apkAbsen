@@ -1,0 +1,10 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/lpka1362/apismk.codingrame.com/
+    - /bin/cp -R $REPOPATH/backend/app.js $DEPLOYPATH
+    - /bin/cp -R $REPOPATH/backend/package.json $DEPLOYPATH
+    - /bin/cp -R $REPOPATH/backend/package-lock.json $DEPLOYPATH
+    - /bin/cp -R $REPOPATH/backend/database.sql $DEPLOYPATH
+    - /bin/cp -R $REPOPATH/backend/src $DEPLOYPATH
+    - /bin/mkdir -p $DEPLOYPATH/uploads/foto $DEPLOYPATH/uploads/surat

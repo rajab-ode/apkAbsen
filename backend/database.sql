@@ -1,11 +1,22 @@
 -- =============================================
--- Database: absensi_smkn5
 -- SMK Negeri 5 Kendari — Absensi Face Recognition
+-- Safe to re-run: drops and recreates all tables, so re-importing
+-- into an already-provisioned database won't error out.
+--
+-- No CREATE DATABASE / USE here on purpose: shared cPanel hosting only
+-- grants access to already-prefixed databases (e.g. lpka1362_absensi_smkn5),
+-- so this file assumes a database is already selected — either via
+-- phpMyAdmin (pick the DB before Import) or Docker's MYSQL_DATABASE env var.
 -- =============================================
 
-CREATE DATABASE IF NOT EXISTS absensi_smkn5
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE absensi_smkn5;
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS izin;
+DROP TABLE IF EXISTS absensi;
+DROP TABLE IF EXISTS siswa;
+DROP TABLE IF EXISTS guru;
+DROP TABLE IF EXISTS admin;
+DROP TABLE IF EXISTS users;
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============ USERS ============
 CREATE TABLE users (
@@ -49,7 +60,7 @@ CREATE TABLE siswa (
   alamat       TEXT,
   no_telepon   VARCHAR(20),
   foto         VARCHAR(255),
-  data_wajah   LONGTEXT,           -- JSON array 128 floats
+  data_wajah   LONGTEXT,           -- JSON array 192 floats
   created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_user) REFERENCES users(id_user) ON DELETE SET NULL
 );
@@ -79,7 +90,7 @@ CREATE TABLE izin (
   FOREIGN KEY (id_siswa) REFERENCES siswa(id_siswa) ON DELETE CASCADE
 );
 
--- ============ SEED: Default Admin ============
+-- ============ SEED: Admin ============
 -- Password: admin123  (bcrypt rounds=10)
 INSERT INTO users (username, password, role, status) VALUES
 ('admin', '$2a$10$qLmrAK49mybsq0.LRgdpr.QA08wUF6zYnJn.K/Xb0UtDqQDjjp9Ty', 'admin', 'aktif');
