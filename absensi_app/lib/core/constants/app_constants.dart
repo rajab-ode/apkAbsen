@@ -1,5 +1,5 @@
 class AppConstants {
-  static const String serverUrl = 'http://192.168.1.27:3001';
+  static const String serverUrl = 'https://apismk.codingrame.com';
   static const String baseUrl = '$serverUrl/api';
   static const String apkDownloadUrl = '$serverUrl/download/app-release.apk';
   static const String tokenKey = 'auth_token';
