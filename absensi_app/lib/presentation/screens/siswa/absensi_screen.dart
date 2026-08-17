@@ -28,6 +28,7 @@ class _AbsensiScreenState extends State<AbsensiScreen>
   bool _isFaceServiceReady = false;
   bool _faceDetected = false;
   bool _isProcessing = false;
+  bool _isTakingPicture = false;
   Timer? _detectionTimer;
 
   @override
@@ -96,16 +97,17 @@ class _AbsensiScreenState extends State<AbsensiScreen>
   }
 
   Future<void> _detectFaceFromStream() async {
+    if (_isTakingPicture) return;
     if (_cameraCtrl == null || !_cameraCtrl!.value.isInitialized) return;
+    _isTakingPicture = true;
     try {
-      // Ambil satu foto untuk deteksi (lebih reliable dari stream)
       final xFile = await _cameraCtrl!.takePicture();
       final faces = await _faceService.detectFaces(xFile.path);
-      // Hapus file temp
       File(xFile.path).deleteSync();
       if (mounted) setState(() => _faceDetected = faces.isNotEmpty);
     } catch (_) {
-      // Silent fail - jangan ganggu UX
+    } finally {
+      _isTakingPicture = false;
     }
   }
 
@@ -132,8 +134,12 @@ class _AbsensiScreenState extends State<AbsensiScreen>
 
     setState(() => _isProcessing = true);
     _detectionTimer?.cancel();
+    while (_isTakingPicture) {
+      await Future.delayed(const Duration(milliseconds: 30));
+    }
 
     String? imagePath;
+    _isTakingPicture = true;
     try {
       final xFile = await _cameraCtrl!.takePicture();
       imagePath = xFile.path;
@@ -157,7 +163,7 @@ class _AbsensiScreenState extends State<AbsensiScreen>
       final msg = e.toString().replaceFirst('Exception: ', '');
       _onGagal(msg);
     } finally {
-      // Selalu hapus file temp agar tidak menumpuk di disk
+      _isTakingPicture = false;
       if (imagePath != null) {
         try { File(imagePath).deleteSync(); } catch (_) {}
       }
@@ -214,6 +220,11 @@ class _AbsensiScreenState extends State<AbsensiScreen>
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.note_add_outlined),
+            tooltip: 'Ajukan Izin',
+            onPressed: () => Navigator.pushNamed(context, '/siswa/izin'),
+          ),
           IconButton(
             icon: const Icon(Icons.assignment_outlined),
             tooltip: 'Riwayat Izin',

@@ -109,7 +109,7 @@ class _RiwayatAbsensiScreenState extends State<RiwayatAbsensiScreen> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${a.waktu} WIB',
+                  '${a.waktu} WITA',
                   style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                 ),
               ],

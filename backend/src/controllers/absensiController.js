@@ -23,12 +23,12 @@ async function getEmbeddingCache() {
 
 function invalidateEmbeddingCache() { _embeddingCache = null; }
 
-// Waktu WIB (UTC+7) — server Docker berjalan di UTC
-function getWIBDateTime() {
-  const wib = new Date(Date.now() + 7 * 60 * 60 * 1000);
+// Waktu WITA (UTC+8) — SMK Negeri 5 Kendari ada di zona WITA; server berjalan di UTC
+function getWITADateTime() {
+  const wita = new Date(Date.now() + 8 * 60 * 60 * 1000);
   return {
-    date: wib.toISOString().slice(0, 10),
-    time: wib.toISOString().slice(11, 19),
+    date: wita.toISOString().slice(0, 10),
+    time: wita.toISOString().slice(11, 19),
   };
 }
 
@@ -57,7 +57,7 @@ async function recognize(req, res) {
       return res.status(404).json({ success: false, message: 'Wajah tidak dikenali. Pastikan wajah terlihat jelas.' });
     }
 
-    const { date: today, time: now } = getWIBDateTime();
+    const { date: today, time: now } = getWITADateTime();
 
     // INSERT IGNORE + UNIQUE KEY (id_siswa, tanggal) mencegah duplikat & race condition
     const [result] = await db.query(

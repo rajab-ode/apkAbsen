@@ -100,7 +100,7 @@ class AbsensiBerhasilScreen extends StatelessWidget {
             _buildDivider(),
             _buildRow(Icons.calendar_today_outlined, 'Tanggal', _formatTanggal(absensi.tanggal)),
             _buildDivider(),
-            _buildRow(Icons.access_time_outlined, 'Waktu', '${absensi.waktu} WIB'),
+            _buildRow(Icons.access_time_outlined, 'Waktu', '${absensi.waktu} WITA'),
             _buildDivider(),
             _buildRow(
               Icons.circle,
