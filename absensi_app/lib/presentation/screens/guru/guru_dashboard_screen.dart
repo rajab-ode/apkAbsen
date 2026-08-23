@@ -12,6 +12,7 @@ import '../../../data/services/absensi_service.dart';
 import '../../../data/services/auth_provider.dart';
 import '../../../data/services/auth_service.dart';
 import 'daftar_izin_screen.dart';
+import 'kelola_jadwal_screen.dart';
 import 'semua_kehadiran_screen.dart';
 
 class GuruDashboardScreen extends StatefulWidget {
@@ -205,6 +206,8 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                       _buildDownloadCard(),
                       const SizedBox(height: 16),
                       _buildIzinCard(),
+                      const SizedBox(height: 16),
+                      _buildJadwalCard(),
                       const SizedBox(height: 24),
                     ],
                   ),
@@ -561,6 +564,48 @@ class _GuruDashboardScreenState extends State<GuruDashboardScreen> {
                   Text('Pengajuan Izin Siswa',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                   Text('Kelola izin yang diajukan siswa',
+                      style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildJadwalCard() {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const KelolaJadwalScreen()),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6)],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.calendar_month_outlined, color: AppTheme.primary, size: 22),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Kelola Jadwal Mengajar',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text('Atur mata pelajaran, kelas, dan jam mengajar Anda',
                       style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                 ],
               ),

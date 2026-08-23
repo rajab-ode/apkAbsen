@@ -27,9 +27,16 @@ class SiswaService {
     }
   }
 
-  Future<void> update(int id, Map<String, dynamic> body) async {
-    final res = await _api.put('/siswa/$id', body);
-    _api.parseResponse(res);
+  Future<void> update(int id, Map<String, dynamic> body, {String? fotoPath}) async {
+    if (fotoPath != null) {
+      final fields = body.map((k, v) => MapEntry(k, v.toString()));
+      final res = await _api.putMultipart('/siswa/$id', fields,
+          fileField: 'foto', filePath: fotoPath, fileName: 'foto.jpg');
+      _api.parseResponse(res);
+    } else {
+      final res = await _api.put('/siswa/$id', body);
+      _api.parseResponse(res);
+    }
   }
 
   Future<void> delete(int id) async {

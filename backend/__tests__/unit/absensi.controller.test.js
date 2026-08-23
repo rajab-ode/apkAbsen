@@ -54,10 +54,23 @@ describe('absensiController.recognize', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('tidak dikenali') }));
   });
 
-  test('returns 409 when student already absent today', async () => {
+  test('returns 404 when no jadwal matches the current day/time', async () => {
+    const stored = unitVec(0);
+    db.query
+      .mockResolvedValueOnce([[{ id_siswa: 1, nama_siswa: 'Andi', NIS: '001', kelas: 'XI TJKT', foto: null, data_wajah: JSON.stringify(stored) }]])
+      .mockResolvedValueOnce([[]]); // no jadwal_pelajaran row matches kelas+hari+jam
+
+    const res = mockRes();
+    await ctrl.recognize({ body: { embedding } }, res);
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('jadwal pelajaran') }));
+  });
+
+  test('returns 409 when student already absent for this jadwal today', async () => {
     const stored = unitVec(0); // identical → similarity = 1.0
     db.query
-      .mockResolvedValueOnce([[{ id_siswa: 1, nama_siswa: 'Andi', NIS: '001', foto: null, data_wajah: JSON.stringify(stored) }]])
+      .mockResolvedValueOnce([[{ id_siswa: 1, nama_siswa: 'Andi', NIS: '001', kelas: 'XI TJKT', foto: null, data_wajah: JSON.stringify(stored) }]])
+      .mockResolvedValueOnce([[{ id_jadwal: 1, mata_pelajaran: 'Matematika', jam_mulai: '00:00:00' }]])
       .mockResolvedValueOnce([{ affectedRows: 0 }]); // INSERT IGNORE skipped → already exists today
 
     const res = mockRes();
@@ -65,10 +78,11 @@ describe('absensiController.recognize', () => {
     expect(res.status).toHaveBeenCalledWith(409);
   });
 
-  test('returns 201 and inserts absensi on successful recognition', async () => {
+  test('returns 201, inserts absensi, and marks telat when absen after jam_mulai', async () => {
     const stored = unitVec(0);
     db.query
-      .mockResolvedValueOnce([[{ id_siswa: 1, nama_siswa: 'Andi', NIS: '001', foto: 'foto/andi.jpg', data_wajah: JSON.stringify(stored) }]])
+      .mockResolvedValueOnce([[{ id_siswa: 1, nama_siswa: 'Andi', NIS: '001', kelas: 'XI TJKT', foto: 'foto/andi.jpg', data_wajah: JSON.stringify(stored) }]])
+      .mockResolvedValueOnce([[{ id_jadwal: 1, mata_pelajaran: 'Matematika', jam_mulai: '00:00:00' }]]) // always in the past → telat
       .mockResolvedValueOnce([{ affectedRows: 1, insertId: 10 }]); // INSERT IGNORE succeeded
 
     const res = mockRes();
@@ -76,7 +90,21 @@ describe('absensiController.recognize', () => {
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       success: true,
-      data: expect.objectContaining({ nama_siswa: 'Andi', status: 'hadir' }),
+      data: expect.objectContaining({ nama_siswa: 'Andi', status: 'hadir', mata_pelajaran: 'Matematika', status_waktu: 'telat' }),
+    }));
+  });
+
+  test('marks tepat_waktu when absen before jam_mulai', async () => {
+    const stored = unitVec(0);
+    db.query
+      .mockResolvedValueOnce([[{ id_siswa: 1, nama_siswa: 'Andi', NIS: '001', kelas: 'XI TJKT', foto: null, data_wajah: JSON.stringify(stored) }]])
+      .mockResolvedValueOnce([[{ id_jadwal: 1, mata_pelajaran: 'Matematika', jam_mulai: '23:59:59' }]]) // always in the future → tepat waktu
+      .mockResolvedValueOnce([{ affectedRows: 1, insertId: 10 }]);
+
+    const res = mockRes();
+    await ctrl.recognize({ body: { embedding } }, res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status_waktu: 'tepat_waktu' }),
     }));
   });
 
@@ -87,9 +115,10 @@ describe('absensiController.recognize', () => {
 
     db.query
       .mockResolvedValueOnce([[
-        { id_siswa: 1, nama_siswa: 'Andi', NIS: '001', foto: null, data_wajah: JSON.stringify(matchStored) },
-        { id_siswa: 2, nama_siswa: 'Budi', NIS: '002', foto: null, data_wajah: JSON.stringify(otherStored) },
+        { id_siswa: 1, nama_siswa: 'Andi', NIS: '001', kelas: 'XI TJKT', foto: null, data_wajah: JSON.stringify(matchStored) },
+        { id_siswa: 2, nama_siswa: 'Budi', NIS: '002', kelas: 'XI TJKT', foto: null, data_wajah: JSON.stringify(otherStored) },
       ]])
+      .mockResolvedValueOnce([[{ id_jadwal: 1, mata_pelajaran: 'Matematika', jam_mulai: '00:00:00' }]])
       .mockResolvedValueOnce([{ affectedRows: 1, insertId: 11 }]); // INSERT IGNORE succeeded
 
     const res = mockRes();

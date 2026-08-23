@@ -59,9 +59,30 @@ class ApiService {
     String? fileField,
     String? filePath,
     String? fileName,
+  }) {
+    return _sendMultipart('POST', path, fields, fileField: fileField, filePath: filePath, fileName: fileName);
+  }
+
+  Future<http.Response> putMultipart(
+    String path,
+    Map<String, String> fields, {
+    String? fileField,
+    String? filePath,
+    String? fileName,
+  }) {
+    return _sendMultipart('PUT', path, fields, fileField: fileField, filePath: filePath, fileName: fileName);
+  }
+
+  Future<http.Response> _sendMultipart(
+    String method,
+    String path,
+    Map<String, String> fields, {
+    String? fileField,
+    String? filePath,
+    String? fileName,
   }) async {
     final token = await _auth.getToken();
-    final request = http.MultipartRequest('POST', Uri.parse('${AppConstants.baseUrl}$path'));
+    final request = http.MultipartRequest(method, Uri.parse('${AppConstants.baseUrl}$path'));
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
     request.fields.addAll(fields);
     if (fileField != null && filePath != null) {

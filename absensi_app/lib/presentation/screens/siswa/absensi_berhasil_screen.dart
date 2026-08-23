@@ -101,6 +101,19 @@ class AbsensiBerhasilScreen extends StatelessWidget {
             _buildRow(Icons.calendar_today_outlined, 'Tanggal', _formatTanggal(absensi.tanggal)),
             _buildDivider(),
             _buildRow(Icons.access_time_outlined, 'Waktu', '${absensi.waktu} WITA'),
+            if (absensi.mataPelajaran != null) ...[
+              _buildDivider(),
+              _buildRow(Icons.menu_book_outlined, 'Mapel', absensi.mataPelajaran!),
+            ],
+            if (absensi.statusWaktu != null) ...[
+              _buildDivider(),
+              _buildRow(
+                absensi.statusWaktu == 'telat' ? Icons.warning_amber_outlined : Icons.check_circle_outline,
+                'Ketepatan',
+                absensi.statusWaktu == 'telat' ? 'Terlambat' : 'Tepat Waktu',
+                valueColor: absensi.statusWaktu == 'telat' ? AppTheme.warning : AppTheme.success,
+              ),
+            ],
             _buildDivider(),
             _buildRow(
               Icons.circle,

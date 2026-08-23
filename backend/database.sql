@@ -12,6 +12,7 @@
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS izin;
 DROP TABLE IF EXISTS absensi;
+DROP TABLE IF EXISTS jadwal_pelajaran;
 DROP TABLE IF EXISTS siswa;
 DROP TABLE IF EXISTS guru;
 DROP TABLE IF EXISTS admin;
@@ -48,6 +49,20 @@ CREATE TABLE guru (
   FOREIGN KEY (id_user) REFERENCES users(id_user) ON DELETE CASCADE
 );
 
+-- ============ JADWAL PELAJARAN ============
+CREATE TABLE jadwal_pelajaran (
+  id_jadwal      INT AUTO_INCREMENT PRIMARY KEY,
+  id_guru        INT NOT NULL,
+  kelas          VARCHAR(20) NOT NULL,
+  hari           ENUM('Senin','Selasa','Rabu','Kamis','Jumat','Sabtu') NOT NULL,
+  jam_mulai      TIME NOT NULL,
+  jam_selesai    TIME NOT NULL,
+  mata_pelajaran VARCHAR(100) NOT NULL,
+  created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_guru_kelas_hari_jam (id_guru, kelas, hari, jam_mulai),
+  FOREIGN KEY (id_guru) REFERENCES guru(id_guru) ON DELETE CASCADE
+);
+
 -- ============ SISWA ============
 CREATE TABLE siswa (
   id_siswa     INT AUTO_INCREMENT PRIMARY KEY,
@@ -67,14 +82,18 @@ CREATE TABLE siswa (
 
 -- ============ ABSENSI ============
 CREATE TABLE absensi (
-  id_absensi INT AUTO_INCREMENT PRIMARY KEY,
-  id_siswa   INT NOT NULL,
-  tanggal    DATE NOT NULL,
-  waktu      TIME NOT NULL,
-  status     ENUM('hadir','izin','tidak_hadir') NOT NULL DEFAULT 'hadir',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_siswa_tanggal (id_siswa, tanggal),
-  FOREIGN KEY (id_siswa) REFERENCES siswa(id_siswa) ON DELETE CASCADE
+  id_absensi     INT AUTO_INCREMENT PRIMARY KEY,
+  id_siswa       INT NOT NULL,
+  tanggal        DATE NOT NULL,
+  waktu          TIME NOT NULL,
+  status         ENUM('hadir','izin','tidak_hadir') NOT NULL DEFAULT 'hadir',
+  id_jadwal      INT,
+  mata_pelajaran VARCHAR(100),
+  status_waktu   ENUM('tepat_waktu','telat'),
+  created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_siswa_tanggal_jadwal (id_siswa, tanggal, id_jadwal),
+  FOREIGN KEY (id_siswa) REFERENCES siswa(id_siswa) ON DELETE CASCADE,
+  FOREIGN KEY (id_jadwal) REFERENCES jadwal_pelajaran(id_jadwal) ON DELETE SET NULL
 );
 
 -- ============ IZIN ============

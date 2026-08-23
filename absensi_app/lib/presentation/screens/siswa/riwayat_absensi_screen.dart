@@ -109,9 +109,20 @@ class _RiwayatAbsensiScreenState extends State<RiwayatAbsensiScreen> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${a.waktu} WITA',
+                  a.mataPelajaran != null ? '${a.waktu} WITA · ${a.mataPelajaran}' : '${a.waktu} WITA',
                   style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                 ),
+                if (a.statusWaktu != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    a.statusWaktu == 'telat' ? 'Terlambat' : 'Tepat Waktu',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: a.statusWaktu == 'telat' ? AppTheme.warning : AppTheme.success,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

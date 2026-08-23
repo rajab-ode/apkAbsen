@@ -14,7 +14,7 @@ async function getEmbeddingCache() {
   const now = Date.now();
   if (_embeddingCache && (now - _cacheTime) < CACHE_TTL_MS) return _embeddingCache;
   const [rows] = await db.query(
-    'SELECT id_siswa, nama_siswa, NIS, foto, data_wajah FROM siswa WHERE data_wajah IS NOT NULL'
+    'SELECT id_siswa, nama_siswa, NIS, kelas, foto, data_wajah FROM siswa WHERE data_wajah IS NOT NULL'
   );
   _embeddingCache = rows.map(r => ({ ...r, embedding: JSON.parse(r.data_wajah) }));
   _cacheTime = now;
@@ -24,11 +24,16 @@ async function getEmbeddingCache() {
 function invalidateEmbeddingCache() { _embeddingCache = null; }
 
 // Waktu WITA (UTC+8) — SMK Negeri 5 Kendari ada di zona WITA; server berjalan di UTC
+const HARI_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
 function getWITADateTime() {
   const wita = new Date(Date.now() + 8 * 60 * 60 * 1000);
   return {
     date: wita.toISOString().slice(0, 10),
     time: wita.toISOString().slice(11, 19),
+    // getUTCDay() bukan getDay(): "wita" sudah digeser +8 jam secara manual dari UTC,
+    // jadi metode timezone-lokal server akan salah baca harinya
+    hari: HARI_NAMES[wita.getUTCDay()],
   };
 }
 
@@ -57,16 +62,32 @@ async function recognize(req, res) {
       return res.status(404).json({ success: false, message: 'Wajah tidak dikenali. Pastikan wajah terlihat jelas.' });
     }
 
-    const { date: today, time: now } = getWITADateTime();
+    const { date: today, time: now, hari } = getWITADateTime();
 
-    // INSERT IGNORE + UNIQUE KEY (id_siswa, tanggal) mencegah duplikat & race condition
+    // Cocokkan jadwal pelajaran kelas siswa ini di hari+jam sekarang — tanpa jadwal yang
+    // cocok, absen ditolak (siswa tidak bisa absen di luar jam pelajaran yang terdaftar)
+    const [jadwalRows] = await db.query(
+      `SELECT id_jadwal, mata_pelajaran, jam_mulai FROM jadwal_pelajaran
+       WHERE kelas = ? AND hari = ? AND ? BETWEEN jam_mulai AND jam_selesai
+       LIMIT 1`,
+      [bestMatch.kelas, hari, now]
+    );
+    if (jadwalRows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Tidak ada jadwal pelajaran saat ini untuk kelas Anda' });
+    }
+    const jadwal = jadwalRows[0];
+    const statusWaktu = now > jadwal.jam_mulai ? 'telat' : 'tepat_waktu';
+
+    // INSERT IGNORE + UNIQUE KEY (id_siswa, tanggal, id_jadwal) mencegah duplikat & race
+    // condition — siswa boleh absen lagi di jadwal/mapel lain di hari yang sama
     const [result] = await db.query(
-      'INSERT IGNORE INTO absensi (id_siswa, tanggal, waktu, status) VALUES (?, ?, ?, "hadir")',
-      [bestMatch.id_siswa, today, now]
+      `INSERT IGNORE INTO absensi (id_siswa, tanggal, waktu, status, id_jadwal, mata_pelajaran, status_waktu)
+       VALUES (?, ?, ?, "hadir", ?, ?, ?)`,
+      [bestMatch.id_siswa, today, now, jadwal.id_jadwal, jadwal.mata_pelajaran, statusWaktu]
     );
 
     if (result.affectedRows === 0) {
-      return res.status(409).json({ success: false, message: 'Absensi hari ini sudah tercatat' });
+      return res.status(409).json({ success: false, message: 'Absensi untuk mata pelajaran ini hari ini sudah tercatat' });
     }
 
     res.status(201).json({
@@ -80,6 +101,8 @@ async function recognize(req, res) {
         tanggal: today,
         waktu: now,
         status: 'hadir',
+        mata_pelajaran: jadwal.mata_pelajaran,
+        status_waktu: statusWaktu,
         similarity: bestScore.toFixed(4),
       },
     });
@@ -101,7 +124,8 @@ async function getAll(req, res) {
 
   try {
     const [rows] = await db.query(
-      `SELECT a.id_absensi, s.nama_siswa, s.NIS, s.kelas, s.foto, a.tanggal, a.waktu, a.status
+      `SELECT a.id_absensi, s.nama_siswa, s.NIS, s.kelas, s.foto, a.tanggal, a.waktu, a.status,
+              a.mata_pelajaran, a.status_waktu
        FROM absensi a
        JOIN siswa s ON a.id_siswa = s.id_siswa
        WHERE (s.nama_siswa LIKE ? OR s.NIS LIKE ?) ${dateFilter}
@@ -145,7 +169,8 @@ async function getMySiswa(req, res) {
   const idSiswa = req.params.idSiswa;
   try {
     const [rows] = await db.query(
-      `SELECT a.id_absensi, s.nama_siswa, s.NIS, s.foto, a.tanggal, a.waktu, a.status
+      `SELECT a.id_absensi, s.nama_siswa, s.NIS, s.foto, a.tanggal, a.waktu, a.status,
+              a.mata_pelajaran, a.status_waktu
        FROM absensi a JOIN siswa s ON a.id_siswa = s.id_siswa
        WHERE a.id_siswa = ? ORDER BY a.tanggal DESC, a.waktu DESC`,
       [idSiswa]
@@ -163,13 +188,13 @@ async function downloadPdf(req, res) {
 
   try {
     const [rows] = await db.query(
-      `SELECT s.nama_siswa, s.NIS, s.kelas, a.waktu, a.status
+      `SELECT s.nama_siswa, s.NIS, s.kelas, a.waktu, a.status, a.mata_pelajaran, a.status_waktu
        FROM absensi a JOIN siswa s ON a.id_siswa = s.id_siswa
        WHERE a.tanggal = ? ORDER BY s.nama_siswa`,
       [tanggal]
     );
 
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const doc = new PDFDocument({ margin: 50, size: 'A4', layout: 'landscape' });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=laporan_absensi_${tanggal}.pdf`);
     doc.pipe(res);
@@ -180,21 +205,22 @@ async function downloadPdf(req, res) {
     doc.moveDown(1.5);
 
     // Table header
-    const cols = [40, 200, 100, 100, 80, 80];
-    const headers = ['No', 'Nama Siswa', 'NIS', 'Kelas', 'Waktu', 'Status'];
+    const cols = [40, 160, 90, 80, 130, 70, 70, 90];
+    const headers = ['No', 'Nama Siswa', 'NIS', 'Kelas', 'Mata Pelajaran', 'Waktu', 'Status', 'Ketepatan'];
     let y = doc.y;
 
     doc.font('Helvetica-Bold').fontSize(10);
     let x = 50;
     headers.forEach((h, i) => { doc.text(h, x, y, { width: cols[i] }); x += cols[i]; });
-    doc.moveTo(50, y + 15).lineTo(550, y + 15).stroke();
+    doc.moveTo(50, y + 15).lineTo(50 + cols.reduce((a, b) => a + b, 0), y + 15).stroke();
     doc.moveDown(0.5);
 
     doc.font('Helvetica').fontSize(9);
     rows.forEach((r, idx) => {
       y = doc.y;
       x = 50;
-      const vals = [idx + 1, r.nama_siswa, r.NIS, r.kelas || '-', r.waktu || '-', r.status];
+      const ketepatan = r.status_waktu === 'telat' ? 'Terlambat' : r.status_waktu === 'tepat_waktu' ? 'Tepat Waktu' : '-';
+      const vals = [idx + 1, r.nama_siswa, r.NIS, r.kelas || '-', r.mata_pelajaran || '-', r.waktu || '-', r.status, ketepatan];
       vals.forEach((v, i) => { doc.text(String(v), x, y, { width: cols[i] }); x += cols[i]; });
       doc.moveDown(0.3);
     });
@@ -212,7 +238,7 @@ async function downloadExcel(req, res) {
 
   try {
     const [rows] = await db.query(
-      `SELECT s.nama_siswa, s.NIS, s.kelas, s.jurusan, a.waktu, a.status
+      `SELECT s.nama_siswa, s.NIS, s.kelas, s.jurusan, a.waktu, a.status, a.mata_pelajaran, a.status_waktu
        FROM absensi a JOIN siswa s ON a.id_siswa = s.id_siswa
        WHERE a.tanggal = ? ORDER BY s.nama_siswa`,
       [tanggal]
@@ -222,32 +248,40 @@ async function downloadExcel(req, res) {
     wb.creator = 'Absensi SMKN5';
     const ws = wb.addWorksheet('Absensi');
 
-    ws.mergeCells('A1:F1');
+    ws.mergeCells('A1:I1');
     ws.getCell('A1').value = 'LAPORAN ABSENSI SISWA — SMK NEGERI 5 KENDARI';
     ws.getCell('A1').font = { bold: true, size: 13 };
     ws.getCell('A1').alignment = { horizontal: 'center' };
 
-    ws.mergeCells('A2:F2');
+    ws.mergeCells('A2:I2');
     ws.getCell('A2').value = `Tanggal: ${tanggal}`;
     ws.getCell('A2').alignment = { horizontal: 'center' };
 
     ws.addRow([]);
-    ws.addRow(['No', 'Nama Siswa', 'NIS', 'Kelas', 'Jurusan', 'Waktu Hadir', 'Status']);
+    ws.addRow(['No', 'Nama Siswa', 'NIS', 'Kelas', 'Jurusan', 'Mata Pelajaran', 'Waktu Hadir', 'Status', 'Ketepatan']);
     ws.getRow(4).font = { bold: true };
     ws.getRow(4).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A1A2E' } };
     ws.getRow(4).font = { bold: true, color: { argb: 'FFFFFFFF' } };
 
     rows.forEach((r, i) => {
-      const row = ws.addRow([i + 1, r.nama_siswa, r.NIS, r.kelas || '-', r.jurusan || '-', r.waktu || '-', r.status]);
-      const statusCell = row.getCell(7);
+      const ketepatan = r.status_waktu === 'telat' ? 'Terlambat' : r.status_waktu === 'tepat_waktu' ? 'Tepat Waktu' : '-';
+      const row = ws.addRow([
+        i + 1, r.nama_siswa, r.NIS, r.kelas || '-', r.jurusan || '-',
+        r.mata_pelajaran || '-', r.waktu || '-', r.status, ketepatan,
+      ]);
+      const statusCell = row.getCell(8);
       if (r.status === 'hadir') statusCell.font = { color: { argb: 'FF10B981' }, bold: true };
       else if (r.status === 'izin') statusCell.font = { color: { argb: 'FFF59E0B' }, bold: true };
       else statusCell.font = { color: { argb: 'FFEF4444' }, bold: true };
+
+      const ketepatanCell = row.getCell(9);
+      if (r.status_waktu === 'telat') ketepatanCell.font = { color: { argb: 'FFEF4444' }, bold: true };
+      else if (r.status_waktu === 'tepat_waktu') ketepatanCell.font = { color: { argb: 'FF10B981' }, bold: true };
     });
 
     ws.columns = [
-      { width: 5 }, { width: 30 }, { width: 15 }, { width: 12 },
-      { width: 20 }, { width: 14 }, { width: 14 },
+      { width: 5 }, { width: 30 }, { width: 15 }, { width: 12 }, { width: 20 },
+      { width: 20 }, { width: 14 }, { width: 14 }, { width: 14 },
     ];
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
