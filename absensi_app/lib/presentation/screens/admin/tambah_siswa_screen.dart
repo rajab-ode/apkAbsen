@@ -57,9 +57,24 @@ class _TambahSiswaScreenState extends State<TambahSiswaScreen> {
   }
 
   Future<void> _pickFoto() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.camera);
-    if (picked != null) setState(() => _foto = File(picked.path));
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+        maxWidth: 1280,
+      );
+      if (picked != null) setState(() => _foto = File(picked.path));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengambil foto: ${e.toString().replaceFirst('Exception: ', '')}'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _simpan() async {
@@ -76,7 +91,7 @@ class _TambahSiswaScreenState extends State<TambahSiswaScreen> {
         'no_telepon': _teleponCtrl.text.trim(),
       };
       if (isEdit) {
-        await SiswaService().update(widget.existingData!['id_siswa'], body);
+        await SiswaService().update(widget.existingData!['id_siswa'], body, fotoPath: _foto?.path);
       } else {
         await SiswaService().create(body, fotoPath: _foto?.path);
       }

@@ -17,6 +17,7 @@ import 'presentation/screens/siswa/riwayat_izin_screen.dart';
 import 'presentation/screens/siswa/ajukan_izin_screen.dart';
 import 'presentation/screens/siswa/daftar_wajah_screen.dart';
 import 'presentation/screens/guru/guru_dashboard_screen.dart';
+import 'presentation/screens/guru/kelola_jadwal_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,6 +61,7 @@ class AbsensiApp extends StatelessWidget {
           '/siswa/izin': (_) => const AjukanIzinScreen(),
           // Guru
           '/guru/dashboard': (_) => const GuruDashboardScreen(),
+          '/guru/jadwal': (_) => const KelolaJadwalScreen(),
         },
       ),
     );

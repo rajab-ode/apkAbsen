@@ -291,8 +291,11 @@ class _SemuaKehadiranScreenState extends State<SemuaKehadiranScreen> {
                 Text(a.namaSiswa,
                     style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
                     overflow: TextOverflow.ellipsis),
-                Text(a.nis,
-                    style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+                Text(
+                  a.mataPelajaran != null ? '${a.nis} · ${a.mataPelajaran}' : a.nis,
+                  style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -312,6 +315,15 @@ class _SemuaKehadiranScreenState extends State<SemuaKehadiranScreen> {
               const SizedBox(height: 3),
               Text(a.waktu,
                   style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
+              if (a.statusWaktu != null)
+                Text(
+                  a.statusWaktu == 'telat' ? 'Terlambat' : 'Tepat Waktu',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: a.statusWaktu == 'telat' ? AppTheme.warning : AppTheme.success,
+                  ),
+                ),
             ],
           ),
         ],

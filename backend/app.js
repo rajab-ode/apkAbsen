@@ -21,6 +21,7 @@ app.use('/api/siswa', require('./src/routes/siswa'));
 app.use('/api/absensi', require('./src/routes/absensi'));
 app.use('/api/izin', require('./src/routes/izin'));
 app.use('/api/akun', require('./src/routes/akun'));
+app.use('/api/jadwal', require('./src/routes/jadwal'));
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));
