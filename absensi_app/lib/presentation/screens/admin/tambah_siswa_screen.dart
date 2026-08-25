@@ -64,7 +64,28 @@ class _TambahSiswaScreenState extends State<TambahSiswaScreen> {
         imageQuality: 80,
         maxWidth: 1280,
       );
-      if (picked != null) setState(() => _foto = File(picked.path));
+      if (picked == null) {
+        // Kamera dibatalkan/ditutup tanpa foto — image_picker balikin null tanpa
+        // melempar exception, jadi tanpa pesan ini tombolnya terasa tidak berfungsi
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Tidak ada foto yang diambil'),
+            backgroundColor: AppTheme.warning,
+          ));
+        }
+        return;
+      }
+      final file = File(picked.path);
+      if (!await file.exists()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Foto gagal disimpan di perangkat, coba lagi'),
+            backgroundColor: AppTheme.error,
+          ));
+        }
+        return;
+      }
+      setState(() => _foto = file);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

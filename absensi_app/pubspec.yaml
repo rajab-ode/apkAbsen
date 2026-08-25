@@ -1,7 +1,7 @@
 name: absensi_app
 description: "Aplikasi Absensi Siswa Berbasis Mobile dengan Face Recognition - SMKN 5 Kendari"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.9.0
