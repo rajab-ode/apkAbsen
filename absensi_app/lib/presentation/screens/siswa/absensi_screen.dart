@@ -10,6 +10,7 @@ import '../../../data/services/face_recognition_service.dart';
 import '../../widgets/face_frame_painter.dart';
 import 'absensi_berhasil_screen.dart';
 import 'absensi_gagal_screen.dart';
+import 'jadwal_saya_screen.dart';
 
 class AbsensiScreen extends StatefulWidget {
   const AbsensiScreen({super.key});
@@ -220,6 +221,14 @@ class _AbsensiScreenState extends State<AbsensiScreen>
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.calendar_month_outlined),
+            tooltip: 'Jadwal Saya',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const JadwalSayaScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: 'Riwayat Absensi',

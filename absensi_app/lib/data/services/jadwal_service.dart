@@ -10,13 +10,19 @@ class JadwalService {
     return (data['data'] as List).map((e) => JadwalModel.fromJson(e)).toList();
   }
 
-  Future<void> create(Map<String, dynamic> body) async {
+  Future<Map<String, dynamic>> create(Map<String, dynamic> body) async {
     final res = await _api.post('/jadwal', body);
-    _api.parseResponse(res);
+    return _api.parseResponse(res);
   }
 
   Future<void> delete(int idJadwal) async {
     final res = await _api.delete('/jadwal/$idJadwal');
     _api.parseResponse(res);
+  }
+
+  Future<List<JadwalModel>> getForSiswa() async {
+    final res = await _api.get('/jadwal/saya');
+    final data = _api.parseResponse(res);
+    return (data['data'] as List).map((e) => JadwalModel.fromJson(e)).toList();
   }
 }

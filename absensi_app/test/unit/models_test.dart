@@ -160,9 +160,9 @@ void main() {
   // ── AkunModel ─────────────────────────────────────────────────────────────
   group('AkunModel', () {
     final json = {
-      'id': 2,
+      'id_user': 2,
       'nama': 'Pak Guru',
-      'peran': 'guru',
+      'role': 'guru',
       'nis_nip': 'NIP12345',
       'username': 'guru01',
       'status': 'aktif',

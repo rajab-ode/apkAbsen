@@ -29,6 +29,27 @@ describe('jadwalController.getMine', () => {
   });
 });
 
+describe('jadwalController.getForSiswa', () => {
+  const siswaReq = (overrides = {}) => ({ user: { extraId: 3 }, ...overrides });
+
+  test('returns empty list when siswa has no kelas set', async () => {
+    db.query.mockResolvedValueOnce([[{ kelas: null }]]);
+    const res = mockRes();
+    await ctrl.getForSiswa(siswaReq(), res);
+    expect(res.json).toHaveBeenCalledWith({ success: true, data: [] });
+  });
+
+  test('returns jadwal for the siswa\'s own kelas', async () => {
+    const rows = [{ id_jadwal: 1, kelas: 'XI TJKT', hari: 'Senin', mata_pelajaran: 'Matematika', nama_guru: 'Pak Budi' }];
+    db.query
+      .mockResolvedValueOnce([[{ kelas: 'XI TJKT' }]])
+      .mockResolvedValueOnce([rows]);
+    const res = mockRes();
+    await ctrl.getForSiswa(siswaReq(), res);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, data: rows }));
+  });
+});
+
 describe('jadwalController.create', () => {
   const validBody = {
     kelas: 'XI TJKT', hari: 'Senin', jam_mulai: '07:00', jam_selesai: '08:30', mata_pelajaran: 'Matematika',
@@ -57,6 +78,20 @@ describe('jadwalController.create', () => {
     const res = mockRes();
     await ctrl.create(guruReq({ body: validBody }), res);
     expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  test('creates jadwal for multiple hari, reporting duplicates separately', async () => {
+    const err = new Error('dup'); err.code = 'ER_DUP_ENTRY';
+    db.query
+      .mockResolvedValueOnce([{ insertId: 1 }]) // Senin ok
+      .mockRejectedValueOnce(err)               // Rabu already exists
+      .mockResolvedValueOnce([{ insertId: 2 }]); // Jumat ok
+    const res = mockRes();
+    await ctrl.create(guruReq({ body: { ...validBody, hari: ['Senin', 'Rabu', 'Jumat'] } }), res);
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      data: { berhasil: ['Senin', 'Jumat'], duplikat: ['Rabu'] },
+    }));
   });
 
   test('returns 409 when jadwal already exists (duplicate key)', async () => {

@@ -11,6 +11,7 @@ import 'presentation/screens/admin/tambah_siswa_screen.dart';
 import 'presentation/screens/admin/registrasi_wajah_screen.dart';
 import 'presentation/screens/admin/kelola_database_screen.dart';
 import 'presentation/screens/admin/kelola_akun_screen.dart';
+import 'presentation/screens/admin/kelola_data_master_screen.dart';
 import 'presentation/screens/siswa/absensi_screen.dart';
 import 'presentation/screens/siswa/riwayat_absensi_screen.dart';
 import 'presentation/screens/siswa/riwayat_izin_screen.dart';
@@ -54,6 +55,7 @@ class AbsensiApp extends StatelessWidget {
           '/admin/registrasi-wajah': (_) => const RegistrasiWajahScreen(),
           '/admin/database': (_) => const KelolaDatabaseScreen(),
           '/admin/akun': (_) => const KelolaAkunScreen(),
+          '/admin/data-master': (_) => const KelolaDataMasterScreen(),
           // Siswa
           '/siswa/absensi': (_) => const AbsensiScreen(),
           '/siswa/riwayat': (_) => const RiwayatAbsensiScreen(),
