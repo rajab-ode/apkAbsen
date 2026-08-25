@@ -221,6 +221,11 @@ class _AbsensiScreenState extends State<AbsensiScreen>
         elevation: 0,
         actions: [
           IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Riwayat Absensi',
+            onPressed: () => Navigator.pushNamed(context, '/siswa/riwayat'),
+          ),
+          IconButton(
             icon: const Icon(Icons.note_add_outlined),
             tooltip: 'Ajukan Izin',
             onPressed: () => Navigator.pushNamed(context, '/siswa/izin'),
