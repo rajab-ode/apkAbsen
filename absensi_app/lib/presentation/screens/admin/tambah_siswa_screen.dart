@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../core/theme/app_theme.dart';
+import '../../../data/models/kelas_model.dart';
+import '../../../data/services/kelas_service.dart';
 import '../../../data/services/siswa_service.dart';
 
 class TambahSiswaScreen extends StatefulWidget {
@@ -19,13 +21,14 @@ class _TambahSiswaScreenState extends State<TambahSiswaScreen> {
   final _alamatCtrl = TextEditingController();
   final _teleponCtrl = TextEditingController();
 
-  String _kelas = 'XI';
+  String? _kelas;
   String _jurusan = 'TJKT';
   String _jenisKelamin = 'Laki-laki';
   File? _foto;
   bool _isLoading = false;
+  bool _isLoadingKelas = true;
 
-  final _kelasList = ['X', 'XI', 'XII'];
+  List<KelasModel> _kelasList = [];
   final _jurusanList = ['TJKT', 'DKV', 'APHP', 'ATPH', 'APAT'];
   final _jenisKelaminList = ['Laki-laki', 'Perempuan'];
 
@@ -40,10 +43,31 @@ class _TambahSiswaScreenState extends State<TambahSiswaScreen> {
       _nisCtrl.text = d['NIS'] ?? '';
       _alamatCtrl.text = d['alamat'] ?? '';
       _teleponCtrl.text = d['no_telepon'] ?? '';
-      _kelas = d['kelas'] ?? 'XI';
+      _kelas = d['kelas'];
       _jurusan = d['jurusan'] ?? 'TJKT';
       final jk = d['jenis_kelamin'];
       _jenisKelamin = (jk == 'L') ? 'Laki-laki' : (jk == 'P') ? 'Perempuan' : 'Laki-laki';
+    }
+    _loadKelas();
+  }
+
+  Future<void> _loadKelas() async {
+    try {
+      final data = await KelasService().getAll();
+      if (mounted) {
+        setState(() {
+          _kelasList = data;
+          if (_kelas == null && data.isNotEmpty) _kelas = data.first.namaKelas;
+          _isLoadingKelas = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingKelas = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', '')), backgroundColor: AppTheme.error),
+        );
+      }
     }
   }
 
@@ -100,6 +124,13 @@ class _TambahSiswaScreenState extends State<TambahSiswaScreen> {
 
   Future<void> _simpan() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_kelas == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Pilih kelas terlebih dahulu'),
+        backgroundColor: AppTheme.warning,
+      ));
+      return;
+    }
     setState(() => _isLoading = true);
     try {
       final body = {
@@ -154,8 +185,7 @@ class _TambahSiswaScreenState extends State<TambahSiswaScreen> {
               _buildField('NIS', _nisCtrl, Icons.badge_outlined, 'Masukkan NIS siswa',
                   keyboardType: TextInputType.number),
               const SizedBox(height: 14),
-              _buildDropdown('Kelas', _kelas, _kelasList, Icons.class_outlined,
-                  (v) => setState(() => _kelas = v!)),
+              _buildKelasDropdown(),
               const SizedBox(height: 14),
               _buildDropdown('Jurusan', _jurusan, _jurusanList, Icons.school_outlined,
                   (v) => setState(() => _jurusan = v!)),
@@ -232,6 +262,29 @@ class _TambahSiswaScreenState extends State<TambahSiswaScreen> {
           decoration: InputDecoration(prefixIcon: Icon(icon), hintText: hint),
           validator: required ? (v) => v == null || v.isEmpty ? '$label tidak boleh kosong' : null : null,
         ),
+      ],
+    );
+  }
+
+  Widget _buildKelasDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Kelas', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+        const SizedBox(height: 6),
+        _isLoadingKelas
+            ? const LinearProgressIndicator()
+            : _kelasList.isEmpty
+                ? const Text('Belum ada data kelas — minta admin lain menambahkan lewat Kelola Data Master',
+                    style: TextStyle(fontSize: 12, color: AppTheme.error))
+                : DropdownButtonFormField<String>(
+                    initialValue: _kelas,
+                    decoration: const InputDecoration(prefixIcon: Icon(Icons.class_outlined)),
+                    items: _kelasList
+                        .map((k) => DropdownMenuItem(value: k.namaKelas, child: Text(k.namaKelas)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _kelas = v),
+                  ),
       ],
     );
   }

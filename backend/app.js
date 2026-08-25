@@ -22,6 +22,8 @@ app.use('/api/absensi', require('./src/routes/absensi'));
 app.use('/api/izin', require('./src/routes/izin'));
 app.use('/api/akun', require('./src/routes/akun'));
 app.use('/api/jadwal', require('./src/routes/jadwal'));
+app.use('/api/kelas', require('./src/routes/kelas'));
+app.use('/api/mata-pelajaran', require('./src/routes/mataPelajaran'));
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));

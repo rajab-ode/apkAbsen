@@ -5,6 +5,7 @@ class JadwalModel {
   final String jamMulai;
   final String jamSelesai;
   final String mataPelajaran;
+  final String? namaGuru;
 
   const JadwalModel({
     required this.idJadwal,
@@ -13,6 +14,7 @@ class JadwalModel {
     required this.jamMulai,
     required this.jamSelesai,
     required this.mataPelajaran,
+    this.namaGuru,
   });
 
   factory JadwalModel.fromJson(Map<String, dynamic> j) => JadwalModel(
@@ -22,5 +24,6 @@ class JadwalModel {
         jamMulai: (j['jam_mulai'] ?? '').toString().substring(0, 5),
         jamSelesai: (j['jam_selesai'] ?? '').toString().substring(0, 5),
         mataPelajaran: j['mata_pelajaran'] ?? '',
+        namaGuru: j['nama_guru'],
       );
 }

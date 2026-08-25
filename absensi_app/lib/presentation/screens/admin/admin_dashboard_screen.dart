@@ -31,6 +31,12 @@ class AdminDashboardScreen extends StatelessWidget {
       subtitle: 'Kelola akun guru dan siswa',
       route: '/admin/akun',
     ),
+    _MenuItem(
+      icon: Icons.dashboard_customize_outlined,
+      title: 'Kelola Data Master',
+      subtitle: 'Kelola daftar kelas dan mata pelajaran',
+      route: '/admin/data-master',
+    ),
   ];
 
   Future<void> _confirmLogout(BuildContext context) async {

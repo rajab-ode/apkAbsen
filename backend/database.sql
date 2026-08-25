@@ -14,6 +14,8 @@ DROP TABLE IF EXISTS izin;
 DROP TABLE IF EXISTS absensi;
 DROP TABLE IF EXISTS jadwal_pelajaran;
 DROP TABLE IF EXISTS siswa;
+DROP TABLE IF EXISTS kelas;
+DROP TABLE IF EXISTS mata_pelajaran;
 DROP TABLE IF EXISTS guru;
 DROP TABLE IF EXISTS admin;
 DROP TABLE IF EXISTS users;
@@ -35,6 +37,20 @@ CREATE TABLE admin (
   id_user   INT NOT NULL UNIQUE,
   nama      VARCHAR(100) NOT NULL,
   FOREIGN KEY (id_user) REFERENCES users(id_user) ON DELETE CASCADE
+);
+
+-- ============ KELAS (data master, dikelola admin) ============
+CREATE TABLE kelas (
+  id_kelas   INT AUTO_INCREMENT PRIMARY KEY,
+  nama_kelas VARCHAR(30) NOT NULL UNIQUE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============ MATA PELAJARAN (data master, dikelola admin) ============
+CREATE TABLE mata_pelajaran (
+  id_mapel   INT AUTO_INCREMENT PRIMARY KEY,
+  nama_mapel VARCHAR(100) NOT NULL UNIQUE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============ GURU ============
@@ -108,6 +124,18 @@ CREATE TABLE izin (
   UNIQUE KEY uq_izin_siswa_tanggal (id_siswa, tanggal),
   FOREIGN KEY (id_siswa) REFERENCES siswa(id_siswa) ON DELETE CASCADE
 );
+
+-- ============ SEED: Kelas ============
+-- Titik awal, admin bebas menambah/menghapus lewat menu Kelola Kelas
+INSERT INTO kelas (nama_kelas) VALUES
+('X TJKT'), ('X DKV'), ('X APHP'), ('X ATPH'), ('X APAT'),
+('XI TJKT'), ('XI DKV'), ('XI APHP'), ('XI ATPH'), ('XI APAT'),
+('XII TJKT'), ('XII DKV'), ('XII APHP'), ('XII ATPH'), ('XII APAT');
+
+-- ============ SEED: Mata Pelajaran ============
+INSERT INTO mata_pelajaran (nama_mapel) VALUES
+('Jaringan Komputer'), ('Pemrograman'), ('Matematika'),
+('Bahasa Indonesia'), ('Bahasa Inggris'), ('IPA'), ('IPS');
 
 -- ============ SEED: Admin ============
 -- Password: admin123  (bcrypt rounds=10)

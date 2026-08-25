@@ -17,30 +17,73 @@ async function getMine(req, res) {
   }
 }
 
+async function getForSiswa(req, res) {
+  const idSiswa = req.user.extraId;
+  try {
+    const [siswaRows] = await db.query('SELECT kelas FROM siswa WHERE id_siswa = ?', [idSiswa]);
+    if (!siswaRows.length || !siswaRows[0].kelas) {
+      return res.json({ success: true, data: [] });
+    }
+    const [rows] = await db.query(
+      `SELECT j.id_jadwal, j.kelas, j.hari, j.jam_mulai, j.jam_selesai, j.mata_pelajaran, g.nama AS nama_guru
+       FROM jadwal_pelajaran j
+       JOIN guru g ON j.id_guru = g.id_guru
+       WHERE j.kelas = ?
+       ORDER BY FIELD(j.hari,'Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'), j.jam_mulai`,
+      [siswaRows[0].kelas]
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Gagal mengambil jadwal' });
+  }
+}
+
 async function create(req, res) {
   const { kelas, hari, jam_mulai, jam_selesai, mata_pelajaran } = req.body;
   const idGuru = req.user.extraId;
 
-  if (!kelas || !hari || !jam_mulai || !jam_selesai || !mata_pelajaran) {
+  const hariList = Array.isArray(hari) ? hari : [hari];
+
+  if (!kelas || !hari || hariList.length === 0 || !jam_mulai || !jam_selesai || !mata_pelajaran) {
     return res.status(400).json({ success: false, message: 'Semua field wajib diisi' });
   }
-  if (!HARI_VALID.includes(hari)) {
+  if (!hariList.every((h) => HARI_VALID.includes(h))) {
     return res.status(400).json({ success: false, message: 'Hari tidak valid' });
   }
   if (jam_selesai <= jam_mulai) {
     return res.status(400).json({ success: false, message: 'Jam selesai harus setelah jam mulai' });
   }
 
+  const berhasil = [];
+  const duplikat = [];
+
   try {
-    const [result] = await db.query(
-      'INSERT INTO jadwal_pelajaran (id_guru, kelas, hari, jam_mulai, jam_selesai, mata_pelajaran) VALUES (?,?,?,?,?,?)',
-      [idGuru, kelas, hari, jam_mulai, jam_selesai, mata_pelajaran]
-    );
-    res.status(201).json({ success: true, message: 'Jadwal berhasil ditambahkan', data: { id_jadwal: result.insertId } });
-  } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ success: false, message: 'Jadwal ini sudah ada' });
+    for (const h of hariList) {
+      try {
+        await db.query(
+          'INSERT INTO jadwal_pelajaran (id_guru, kelas, hari, jam_mulai, jam_selesai, mata_pelajaran) VALUES (?,?,?,?,?,?)',
+          [idGuru, kelas, h, jam_mulai, jam_selesai, mata_pelajaran]
+        );
+        berhasil.push(h);
+      } catch (err) {
+        if (err.code === 'ER_DUP_ENTRY') {
+          duplikat.push(h);
+        } else {
+          throw err;
+        }
+      }
     }
+
+    if (berhasil.length === 0) {
+      return res.status(409).json({ success: false, message: 'Jadwal ini sudah ada di semua hari yang dipilih', data: { berhasil, duplikat } });
+    }
+
+    const message = duplikat.length
+      ? `Jadwal ditambahkan untuk ${berhasil.join(', ')} — ${duplikat.join(', ')} sudah ada sebelumnya`
+      : 'Jadwal berhasil ditambahkan';
+    res.status(201).json({ success: true, message, data: { berhasil, duplikat } });
+  } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: 'Gagal menambahkan jadwal' });
   }
@@ -65,4 +108,4 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { getMine, create, remove };
+module.exports = { getMine, getForSiswa, create, remove };

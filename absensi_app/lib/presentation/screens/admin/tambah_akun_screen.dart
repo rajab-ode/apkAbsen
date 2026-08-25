@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/models/siswa_model.dart';
 import '../../../data/services/akun_service.dart';
+import '../../../data/services/mata_pelajaran_service.dart';
 import '../../../data/services/siswa_service.dart';
 
 class TambahAkunScreen extends StatefulWidget {
@@ -19,6 +20,7 @@ class _TambahAkunScreenState extends State<TambahAkunScreen> {
   bool _isGuru = true;
   bool _isLoading = false;
   bool _isLoadingSiswa = false;
+  bool _isLoadingMapel = true;
   bool _obscurePass = true;
 
   // Guru fields
@@ -26,7 +28,7 @@ class _TambahAkunScreenState extends State<TambahAkunScreen> {
   final _nipCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _teleponCtrl = TextEditingController();
-  String _mataPelajaran = 'Jaringan Komputer';
+  String? _mataPelajaran;
 
   // Shared fields
   final _usernameCtrl = TextEditingController();
@@ -36,15 +38,28 @@ class _TambahAkunScreenState extends State<TambahAkunScreen> {
   List<SiswaModel> _siswaList = [];
   SiswaModel? _selectedSiswa;
 
-  final _mapelList = [
-    'Jaringan Komputer', 'Pemrograman', 'Matematika',
-    'Bahasa Indonesia', 'Bahasa Inggris', 'IPA', 'IPS',
-  ];
+  List<String> _mapelList = [];
 
   @override
   void initState() {
     super.initState();
     _loadSiswaTanpaAkun();
+    _loadMapel();
+  }
+
+  Future<void> _loadMapel() async {
+    try {
+      final data = await MataPelajaranService().getAll();
+      if (mounted) {
+        setState(() {
+          _mapelList = data.map((m) => m.namaMapel).toList();
+          if (_mataPelajaran == null && _mapelList.isNotEmpty) _mataPelajaran = _mapelList.first;
+          _isLoadingMapel = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingMapel = false);
+    }
   }
 
   @override
@@ -71,6 +86,13 @@ class _TambahAkunScreenState extends State<TambahAkunScreen> {
 
   Future<void> _simpan() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_isGuru && _mataPelajaran == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Pilih mata pelajaran terlebih dahulu'),
+        backgroundColor: AppTheme.warning,
+      ));
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
@@ -158,8 +180,20 @@ class _TambahAkunScreenState extends State<TambahAkunScreen> {
                 _buildField('No. Telepon', _teleponCtrl, Icons.phone_outlined, 'Masukkan nomor telepon',
                     keyboardType: TextInputType.phone, required: false),
                 const SizedBox(height: 12),
-                _buildDropdown('Mata Pelajaran', _mataPelajaran, _mapelList,
-                    Icons.menu_book_outlined, (v) => setState(() => _mataPelajaran = v!)),
+                _isLoadingMapel
+                    ? const LinearProgressIndicator()
+                    : _mapelList.isEmpty
+                        ? const Text('Belum ada data mata pelajaran — tambahkan lewat Kelola Data Master',
+                            style: TextStyle(fontSize: 12, color: AppTheme.error))
+                        : DropdownButtonFormField<String>(
+                            initialValue: _mataPelajaran,
+                            decoration: const InputDecoration(
+                              labelText: 'Mata Pelajaran',
+                              prefixIcon: Icon(Icons.menu_book_outlined),
+                            ),
+                            items: _mapelList.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                            onChanged: (v) => setState(() => _mataPelajaran = v),
+                          ),
               ] else ...[
                 _buildSectionLabel('Pilih Siswa'),
                 const SizedBox(height: 12),
@@ -346,16 +380,6 @@ class _TambahAkunScreenState extends State<TambahAkunScreen> {
         if (v.trim().length < 6) return 'Password minimal 6 karakter';
         return null;
       },
-    );
-  }
-
-  Widget _buildDropdown(String label, String value, List<String> items, IconData icon,
-      void Function(String?) onChanged) {
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
-      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-      onChanged: onChanged,
     );
   }
 }
