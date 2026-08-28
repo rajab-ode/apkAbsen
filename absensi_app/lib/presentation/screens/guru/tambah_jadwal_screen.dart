@@ -21,12 +21,14 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
   List<MataPelajaranModel> _mapelList = [];
 
   int? _idKelas;
+  String _jurusan = 'TJKT';
   int? _idMapel;
   final Set<String> _selectedHari = {};
   TimeOfDay? _jamMulai;
   TimeOfDay? _jamSelesai;
 
   final _hariOptions = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  final _jurusanList = ['TJKT', 'DKV', 'APHP', 'ATPH', 'APAT'];
 
   @override
   void initState() {
@@ -114,6 +116,7 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
     try {
       final result = await JadwalService().create({
         'kelas': kelas,
+        'jurusan': _jurusan,
         'hari': _selectedHari.toList(),
         'jam_mulai': _fmt(_jamMulai!),
         'jam_selesai': _fmt(_jamSelesai!),
@@ -194,6 +197,15 @@ class _TambahJadwalScreenState extends State<TambahJadwalScreen> {
             decoration: const InputDecoration(prefixIcon: Icon(Icons.class_outlined), hintText: 'Pilih kelas'),
             items: _kelasList.map((k) => DropdownMenuItem(value: k.idKelas, child: Text(k.namaKelas))).toList(),
             onChanged: (v) => setState(() => _idKelas = v),
+          ),
+          const SizedBox(height: 14),
+          const Text('Jurusan', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+          const SizedBox(height: 6),
+          DropdownButtonFormField<String>(
+            initialValue: _jurusan,
+            decoration: const InputDecoration(prefixIcon: Icon(Icons.school_outlined)),
+            items: _jurusanList.map((j) => DropdownMenuItem(value: j, child: Text(j))).toList(),
+            onChanged: (v) => setState(() => _jurusan = v!),
           ),
           const SizedBox(height: 14),
           const Text('Hari', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),

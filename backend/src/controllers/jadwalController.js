@@ -20,17 +20,17 @@ async function getMine(req, res) {
 async function getForSiswa(req, res) {
   const idSiswa = req.user.extraId;
   try {
-    const [siswaRows] = await db.query('SELECT kelas FROM siswa WHERE id_siswa = ?', [idSiswa]);
+    const [siswaRows] = await db.query('SELECT kelas, jurusan FROM siswa WHERE id_siswa = ?', [idSiswa]);
     if (!siswaRows.length || !siswaRows[0].kelas) {
       return res.json({ success: true, data: [] });
     }
     const [rows] = await db.query(
-      `SELECT j.id_jadwal, j.kelas, j.hari, j.jam_mulai, j.jam_selesai, j.mata_pelajaran, g.nama AS nama_guru
+      `SELECT j.id_jadwal, j.kelas, j.jurusan, j.hari, j.jam_mulai, j.jam_selesai, j.mata_pelajaran, g.nama AS nama_guru
        FROM jadwal_pelajaran j
        JOIN guru g ON j.id_guru = g.id_guru
-       WHERE j.kelas = ?
+       WHERE j.kelas = ? AND j.jurusan = ?
        ORDER BY FIELD(j.hari,'Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'), j.jam_mulai`,
-      [siswaRows[0].kelas]
+      [siswaRows[0].kelas, siswaRows[0].jurusan]
     );
     res.json({ success: true, data: rows });
   } catch (err) {
@@ -40,12 +40,12 @@ async function getForSiswa(req, res) {
 }
 
 async function create(req, res) {
-  const { kelas, hari, jam_mulai, jam_selesai, mata_pelajaran } = req.body;
+  const { kelas, jurusan, hari, jam_mulai, jam_selesai, mata_pelajaran } = req.body;
   const idGuru = req.user.extraId;
 
   const hariList = Array.isArray(hari) ? hari : [hari];
 
-  if (!kelas || !hari || hariList.length === 0 || !jam_mulai || !jam_selesai || !mata_pelajaran) {
+  if (!kelas || !jurusan || !hari || hariList.length === 0 || !jam_mulai || !jam_selesai || !mata_pelajaran) {
     return res.status(400).json({ success: false, message: 'Semua field wajib diisi' });
   }
   if (!hariList.every((h) => HARI_VALID.includes(h))) {
@@ -62,8 +62,8 @@ async function create(req, res) {
     for (const h of hariList) {
       try {
         await db.query(
-          'INSERT INTO jadwal_pelajaran (id_guru, kelas, hari, jam_mulai, jam_selesai, mata_pelajaran) VALUES (?,?,?,?,?,?)',
-          [idGuru, kelas, h, jam_mulai, jam_selesai, mata_pelajaran]
+          'INSERT INTO jadwal_pelajaran (id_guru, kelas, jurusan, hari, jam_mulai, jam_selesai, mata_pelajaran) VALUES (?,?,?,?,?,?,?)',
+          [idGuru, kelas, jurusan, h, jam_mulai, jam_selesai, mata_pelajaran]
         );
         berhasil.push(h);
       } catch (err) {

@@ -45,7 +45,7 @@ class _KelolaJadwalScreenState extends State<KelolaJadwalScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Hapus Jadwal'),
-        content: Text('Hapus jadwal ${j.mataPelajaran} (${j.kelas}, ${j.hari} ${j.jamMulai}-${j.jamSelesai})?'),
+        content: Text('Hapus jadwal ${j.mataPelajaran} (${j.kelas} ${j.jurusan}, ${j.hari} ${j.jamMulai}-${j.jamSelesai})?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
           ElevatedButton(
@@ -122,7 +122,7 @@ class _KelolaJadwalScreenState extends State<KelolaJadwalScreen> {
               children: [
                 Text(j.mataPelajaran, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                 const SizedBox(height: 2),
-                Text('${j.kelas} · ${j.jamMulai}-${j.jamSelesai}',
+                Text('${j.kelas} ${j.jurusan} · ${j.jamMulai}-${j.jamSelesai}',
                     style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
               ],
             ),
