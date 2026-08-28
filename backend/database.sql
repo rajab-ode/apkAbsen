@@ -70,12 +70,13 @@ CREATE TABLE jadwal_pelajaran (
   id_jadwal      INT AUTO_INCREMENT PRIMARY KEY,
   id_guru        INT NOT NULL,
   kelas          VARCHAR(20) NOT NULL,
+  jurusan        VARCHAR(50) NOT NULL,
   hari           ENUM('Senin','Selasa','Rabu','Kamis','Jumat','Sabtu') NOT NULL,
   jam_mulai      TIME NOT NULL,
   jam_selesai    TIME NOT NULL,
   mata_pelajaran VARCHAR(100) NOT NULL,
   created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_guru_kelas_hari_jam (id_guru, kelas, hari, jam_mulai),
+  UNIQUE KEY uq_guru_kelas_jurusan_hari_jam (id_guru, kelas, jurusan, hari, jam_mulai),
   FOREIGN KEY (id_guru) REFERENCES guru(id_guru) ON DELETE CASCADE
 );
 
@@ -126,11 +127,9 @@ CREATE TABLE izin (
 );
 
 -- ============ SEED: Kelas ============
--- Titik awal, admin bebas menambah/menghapus lewat menu Kelola Kelas
-INSERT INTO kelas (nama_kelas) VALUES
-('X TJKT'), ('X DKV'), ('X APHP'), ('X ATPH'), ('X APAT'),
-('XI TJKT'), ('XI DKV'), ('XI APHP'), ('XI ATPH'), ('XI APAT'),
-('XII TJKT'), ('XII DKV'), ('XII APHP'), ('XII ATPH'), ('XII APAT');
+-- Kelas itu sendiri (tanpa jurusan — jurusan tersimpan terpisah di data siswa
+-- & jadwal). Titik awal, admin bebas menambah/menghapus lewat Kelola Data Master.
+INSERT INTO kelas (nama_kelas) VALUES ('X'), ('XI'), ('XII');
 
 -- ============ SEED: Mata Pelajaran ============
 INSERT INTO mata_pelajaran (nama_mapel) VALUES

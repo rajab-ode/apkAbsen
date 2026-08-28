@@ -14,7 +14,7 @@ async function getEmbeddingCache() {
   const now = Date.now();
   if (_embeddingCache && (now - _cacheTime) < CACHE_TTL_MS) return _embeddingCache;
   const [rows] = await db.query(
-    'SELECT id_siswa, nama_siswa, NIS, kelas, foto, data_wajah FROM siswa WHERE data_wajah IS NOT NULL'
+    'SELECT id_siswa, nama_siswa, NIS, kelas, jurusan, foto, data_wajah FROM siswa WHERE data_wajah IS NOT NULL'
   );
   _embeddingCache = rows.map(r => ({ ...r, embedding: JSON.parse(r.data_wajah) }));
   _cacheTime = now;
@@ -68,9 +68,9 @@ async function recognize(req, res) {
     // cocok, absen ditolak (siswa tidak bisa absen di luar jam pelajaran yang terdaftar)
     const [jadwalRows] = await db.query(
       `SELECT id_jadwal, mata_pelajaran, jam_mulai FROM jadwal_pelajaran
-       WHERE kelas = ? AND hari = ? AND ? BETWEEN jam_mulai AND jam_selesai
+       WHERE kelas = ? AND jurusan = ? AND hari = ? AND ? BETWEEN jam_mulai AND jam_selesai
        LIMIT 1`,
-      [bestMatch.kelas, hari, now]
+      [bestMatch.kelas, bestMatch.jurusan, hari, now]
     );
     if (jadwalRows.length === 0) {
       return res.status(404).json({ success: false, message: 'Tidak ada jadwal pelajaran saat ini untuk kelas Anda' });

@@ -14,8 +14,6 @@ CREATE TABLE IF NOT EXISTS kelas (
 INSERT IGNORE INTO kelas (nama_kelas)
 SELECT DISTINCT kelas FROM siswa WHERE kelas IS NOT NULL AND kelas <> '';
 
--- Seed titik awal (kalau belum ada siswa sama sekali, atau mau tambah opsi standar)
-INSERT IGNORE INTO kelas (nama_kelas) VALUES
-('X TJKT'), ('X DKV'), ('X APHP'), ('X ATPH'), ('X APAT'),
-('XI TJKT'), ('XI DKV'), ('XI APHP'), ('XI ATPH'), ('XI APAT'),
-('XII TJKT'), ('XII DKV'), ('XII APHP'), ('XII ATPH'), ('XII APAT');
+-- Seed titik awal (kalau belum ada siswa sama sekali) — kelas tanpa jurusan,
+-- jurusan tersimpan terpisah di data siswa & jadwal
+INSERT IGNORE INTO kelas (nama_kelas) VALUES ('X'), ('XI'), ('XII');

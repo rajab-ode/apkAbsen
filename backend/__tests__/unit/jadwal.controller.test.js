@@ -39,10 +39,10 @@ describe('jadwalController.getForSiswa', () => {
     expect(res.json).toHaveBeenCalledWith({ success: true, data: [] });
   });
 
-  test('returns jadwal for the siswa\'s own kelas', async () => {
-    const rows = [{ id_jadwal: 1, kelas: 'XI TJKT', hari: 'Senin', mata_pelajaran: 'Matematika', nama_guru: 'Pak Budi' }];
+  test('returns jadwal for the siswa\'s own kelas + jurusan', async () => {
+    const rows = [{ id_jadwal: 1, kelas: 'XI', jurusan: 'TJKT', hari: 'Senin', mata_pelajaran: 'Matematika', nama_guru: 'Pak Budi' }];
     db.query
-      .mockResolvedValueOnce([[{ kelas: 'XI TJKT' }]])
+      .mockResolvedValueOnce([[{ kelas: 'XI', jurusan: 'TJKT' }]])
       .mockResolvedValueOnce([rows]);
     const res = mockRes();
     await ctrl.getForSiswa(siswaReq(), res);
@@ -52,8 +52,14 @@ describe('jadwalController.getForSiswa', () => {
 
 describe('jadwalController.create', () => {
   const validBody = {
-    kelas: 'XI TJKT', hari: 'Senin', jam_mulai: '07:00', jam_selesai: '08:30', mata_pelajaran: 'Matematika',
+    kelas: 'XI', jurusan: 'TJKT', hari: 'Senin', jam_mulai: '07:00', jam_selesai: '08:30', mata_pelajaran: 'Matematika',
   };
+
+  test('returns 400 when jurusan missing', async () => {
+    const res = mockRes();
+    await ctrl.create(guruReq({ body: { ...validBody, jurusan: undefined } }), res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
 
   test('returns 400 when a field is missing', async () => {
     const res = mockRes();
