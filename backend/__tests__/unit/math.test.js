@@ -1,4 +1,4 @@
-const { cosineSimilarity } = require('../../src/utils/math');
+const { cosineSimilarity, haversineDistance } = require('../../src/utils/math');
 
 describe('cosineSimilarity', () => {
   const dim = 128;
@@ -46,5 +46,29 @@ describe('cosineSimilarity', () => {
     const similar = base.map(x => x + (Math.random() - 0.5) * 0.01);
     const score = cosineSimilarity(base, similar);
     expect(score).toBeGreaterThan(THRESHOLD);
+  });
+});
+
+describe('haversineDistance', () => {
+  test('same point returns 0', () => {
+    expect(haversineDistance(-3.9778, 122.5194, -3.9778, 122.5194)).toBeCloseTo(0, 3);
+  });
+
+  test('1 degree of latitude is approximately 111.2km', () => {
+    const dist = haversineDistance(0, 0, 1, 0);
+    expect(dist).toBeGreaterThan(110000);
+    expect(dist).toBeLessThan(112000);
+  });
+
+  test('is symmetric', () => {
+    const a = haversineDistance(-3.9778, 122.5194, -3.99, 122.53);
+    const b = haversineDistance(-3.99, 122.53, -3.9778, 122.5194);
+    expect(a).toBeCloseTo(b, 6);
+  });
+
+  test('a point ~50m away is within a 100m radius', () => {
+    // ~0.00045 deg latitude ≈ 50m
+    const dist = haversineDistance(-3.9778, 122.5194, -3.9778 + 0.00045, 122.5194);
+    expect(dist).toBeLessThan(100);
   });
 });

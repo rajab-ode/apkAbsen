@@ -37,6 +37,12 @@ class AdminDashboardScreen extends StatelessWidget {
       subtitle: 'Kelola daftar kelas dan mata pelajaran',
       route: '/admin/data-master',
     ),
+    _MenuItem(
+      icon: Icons.location_on_outlined,
+      title: 'Pengaturan Geofencing',
+      subtitle: 'Atur area lokasi sekolah untuk absen',
+      route: '/admin/geofencing',
+    ),
   ];
 
   Future<void> _confirmLogout(BuildContext context) async {
