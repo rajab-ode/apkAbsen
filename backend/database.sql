@@ -10,6 +10,7 @@
 -- =============================================
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS geofence;
 DROP TABLE IF EXISTS izin;
 DROP TABLE IF EXISTS absensi;
 DROP TABLE IF EXISTS jadwal_pelajaran;
@@ -124,6 +125,18 @@ CREATE TABLE izin (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_izin_siswa_tanggal (id_siswa, tanggal),
   FOREIGN KEY (id_siswa) REFERENCES siswa(id_siswa) ON DELETE CASCADE
+);
+
+-- ============ GEOFENCE (satu baris tetap, dikelola admin) ============
+-- Sengaja tidak di-seed — kosong sampai admin mengisi. Selama kosong, absen
+-- tidak dibatasi lokasi (fail-open), lihat absensiController.recognize().
+CREATE TABLE geofence (
+  id           INT PRIMARY KEY DEFAULT 1,
+  latitude     DECIMAL(10,7) NOT NULL,
+  longitude    DECIMAL(10,7) NOT NULL,
+  radius_meter INT NOT NULL,
+  updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT chk_geofence_single_row CHECK (id = 1)
 );
 
 -- ============ SEED: Kelas ============

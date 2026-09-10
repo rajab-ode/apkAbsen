@@ -21,6 +21,11 @@ beforeEach(() => {
 });
 
 describe('absensiController.recognize', () => {
+  // Semua test di bawah ini mock query geofence (panggilan db.query pertama)
+  // sebagai "belum diisi admin" ([[]]) supaya perilaku lama tetap terverifikasi
+  // tanpa perlu peduli geofence — kasus geofence sendiri diuji terpisah di bawah.
+  const noGeofence = () => db.query.mockResolvedValueOnce([[]]);
+
   test('returns 400 when embedding is missing', async () => {
     const res = mockRes();
     await ctrl.recognize({ body: {} }, res);
@@ -34,6 +39,7 @@ describe('absensiController.recognize', () => {
   });
 
   test('returns 404 when no students have registered faces', async () => {
+    noGeofence();
     db.query.mockResolvedValueOnce([[]]);
     const res = mockRes();
     await ctrl.recognize({ body: { embedding } }, res);
@@ -44,6 +50,7 @@ describe('absensiController.recognize', () => {
   test('returns 404 when best match is below threshold (0.80)', async () => {
     // Orthogonal vector → similarity = 0.0
     const stored = unitVec(1);
+    noGeofence();
     db.query.mockResolvedValueOnce([[{
       id_siswa: 1, nama_siswa: 'Andi', NIS: '001', foto: null,
       data_wajah: JSON.stringify(stored),
@@ -56,6 +63,7 @@ describe('absensiController.recognize', () => {
 
   test('returns 404 when no jadwal matches the current day/time', async () => {
     const stored = unitVec(0);
+    noGeofence();
     db.query
       .mockResolvedValueOnce([[{ id_siswa: 1, nama_siswa: 'Andi', NIS: '001', kelas: 'XI TJKT', foto: null, data_wajah: JSON.stringify(stored) }]])
       .mockResolvedValueOnce([[]]); // no jadwal_pelajaran row matches kelas+hari+jam
@@ -68,6 +76,7 @@ describe('absensiController.recognize', () => {
 
   test('returns 409 when student already absent for this jadwal today', async () => {
     const stored = unitVec(0); // identical → similarity = 1.0
+    noGeofence();
     db.query
       .mockResolvedValueOnce([[{ id_siswa: 1, nama_siswa: 'Andi', NIS: '001', kelas: 'XI TJKT', foto: null, data_wajah: JSON.stringify(stored) }]])
       .mockResolvedValueOnce([[{ id_jadwal: 1, mata_pelajaran: 'Matematika', jam_mulai: '00:00:00' }]])
@@ -80,6 +89,7 @@ describe('absensiController.recognize', () => {
 
   test('returns 201, inserts absensi, and marks telat when absen after jam_mulai', async () => {
     const stored = unitVec(0);
+    noGeofence();
     db.query
       .mockResolvedValueOnce([[{ id_siswa: 1, nama_siswa: 'Andi', NIS: '001', kelas: 'XI TJKT', foto: 'foto/andi.jpg', data_wajah: JSON.stringify(stored) }]])
       .mockResolvedValueOnce([[{ id_jadwal: 1, mata_pelajaran: 'Matematika', jam_mulai: '00:00:00' }]]) // always in the past → telat
@@ -96,6 +106,7 @@ describe('absensiController.recognize', () => {
 
   test('marks tepat_waktu when absen before jam_mulai', async () => {
     const stored = unitVec(0);
+    noGeofence();
     db.query
       .mockResolvedValueOnce([[{ id_siswa: 1, nama_siswa: 'Andi', NIS: '001', kelas: 'XI TJKT', foto: null, data_wajah: JSON.stringify(stored) }]])
       .mockResolvedValueOnce([[{ id_jadwal: 1, mata_pelajaran: 'Matematika', jam_mulai: '23:59:59' }]]) // always in the future → tepat waktu
@@ -113,6 +124,7 @@ describe('absensiController.recognize', () => {
     const matchStored = unitVec(0);    // similarity = 1.0 → match
     const otherStored  = unitVec(1);   // similarity = 0.0 → no match
 
+    noGeofence();
     db.query
       .mockResolvedValueOnce([[
         { id_siswa: 1, nama_siswa: 'Andi', NIS: '001', kelas: 'XI TJKT', foto: null, data_wajah: JSON.stringify(matchStored) },
@@ -127,6 +139,44 @@ describe('absensiController.recognize', () => {
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ nama_siswa: 'Andi' }),
     }));
+  });
+
+  describe('geofencing', () => {
+    const gf = { id: 1, latitude: '-3.9778000', longitude: '122.5194000', radius_meter: 100 };
+
+    test('allows through when geofence is not configured (fail-open)', async () => {
+      noGeofence();
+      db.query.mockResolvedValueOnce([[]]); // no students, just proving we got past the geofence step
+      const res = mockRes();
+      await ctrl.recognize({ body: { embedding, latitude: -8, longitude: 140 } }, res);
+      // reaches the "no students" check, not blocked by geofence
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Belum ada wajah') }));
+    });
+
+    test('returns 400 when geofence configured but location missing from request', async () => {
+      db.query.mockResolvedValueOnce([[gf]]);
+      const res = mockRes();
+      await ctrl.recognize({ body: { embedding } }, res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Lokasi tidak terdeteksi') }));
+    });
+
+    test('returns 403 when outside the configured radius', async () => {
+      db.query.mockResolvedValueOnce([[gf]]);
+      const res = mockRes();
+      // Jakarta-ish coords, hundreds of km from the school's Kendari coords
+      await ctrl.recognize({ body: { embedding, latitude: -6.2, longitude: 106.8 } }, res);
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('luar area sekolah') }));
+    });
+
+    test('proceeds when inside the configured radius', async () => {
+      db.query.mockResolvedValueOnce([[gf]]);
+      db.query.mockResolvedValueOnce([[]]); // no students registered — proves geofence passed
+      const res = mockRes();
+      await ctrl.recognize({ body: { embedding, latitude: -3.9778, longitude: 122.5194 } }, res);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Belum ada wajah') }));
+    });
   });
 });
 

@@ -1,7 +1,7 @@
 const db = require('../config/db');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
-const { cosineSimilarity } = require('../utils/math');
+const { cosineSimilarity, haversineDistance } = require('../utils/math');
 
 const THRESHOLD = 0.80;
 
@@ -38,12 +38,29 @@ function getWITADateTime() {
 }
 
 async function recognize(req, res) {
-  const { embedding } = req.body;
+  const { embedding, latitude, longitude } = req.body;
   if (!embedding || !Array.isArray(embedding) || embedding.length !== 192) {
     return res.status(400).json({ success: false, message: 'Embedding tidak valid' });
   }
 
   try {
+    // Geofence: kalau admin belum mengisi lokasi sekolah, lewati pengecekan
+    // (fail-open) supaya absen tidak mendadak terblokir semua sebelum diatur
+    const [geofenceRows] = await db.query('SELECT * FROM geofence WHERE id = 1');
+    if (geofenceRows.length) {
+      const gf = geofenceRows[0];
+      if (typeof latitude !== 'number' || typeof longitude !== 'number') {
+        return res.status(400).json({ success: false, message: 'Lokasi tidak terdeteksi. Aktifkan GPS dan izinkan akses lokasi.' });
+      }
+      const jarak = haversineDistance(latitude, longitude, Number(gf.latitude), Number(gf.longitude));
+      if (jarak > gf.radius_meter) {
+        return res.status(403).json({
+          success: false,
+          message: `Anda berada di luar area sekolah (jarak ${Math.round(jarak)}m, maksimal ${gf.radius_meter}m)`,
+        });
+      }
+    }
+
     const students = await getEmbeddingCache();
 
     if (students.length === 0) {

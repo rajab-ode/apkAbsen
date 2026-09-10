@@ -24,6 +24,7 @@ app.use('/api/akun', require('./src/routes/akun'));
 app.use('/api/jadwal', require('./src/routes/jadwal'));
 app.use('/api/kelas', require('./src/routes/kelas'));
 app.use('/api/mata-pelajaran', require('./src/routes/mataPelajaran'));
+app.use('/api/geofence', require('./src/routes/geofence'));
 
 // Health check
 app.get('/api/health', (_, res) => res.json({ status: 'ok', time: new Date() }));

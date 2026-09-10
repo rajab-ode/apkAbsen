@@ -11,8 +11,12 @@ class AbsensiService {
   final _api = ApiService();
   final _auth = AuthService();
 
-  Future<AbsensiModel> recognize(List<double> embedding) async {
-    final res = await _api.post('/absensi/recognize', {'embedding': embedding});
+  Future<AbsensiModel> recognize(List<double> embedding, {double? latitude, double? longitude}) async {
+    final res = await _api.post('/absensi/recognize', {
+      'embedding': embedding,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+    });
     final data = _api.parseResponse(res);
     return AbsensiModel.fromJson(data['data']);
   }

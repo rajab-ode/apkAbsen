@@ -13,6 +13,9 @@ ALTER TABLE jadwal_pelajaran
 -- diedit ulang manual lewat app (hapus, buat ulang dengan jurusan yang benar)
 -- supaya bisa cocok ke siswa lagi.
 
-ALTER TABLE jadwal_pelajaran DROP INDEX uq_guru_kelas_hari_jam;
+-- Index baru dibuat DULU (dia juga menopang FK id_guru), baru index lama
+-- boleh dihapus — kalau dibalik urutannya, MySQL menolak drop index lama
+-- karena FK id_guru butuh index yang tersedia setiap saat
 ALTER TABLE jadwal_pelajaran
   ADD UNIQUE KEY uq_guru_kelas_jurusan_hari_jam (id_guru, kelas, jurusan, hari, jam_mulai);
+ALTER TABLE jadwal_pelajaran DROP INDEX uq_guru_kelas_hari_jam;

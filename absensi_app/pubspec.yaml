@@ -18,6 +18,9 @@ dependencies:
   # Kamera
   camera: ^0.10.5+9
 
+  # Lokasi (geofencing)
+  geolocator: ^13.0.0
+
   # Networking
   http: ^1.2.2
 

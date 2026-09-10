@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../data/services/absensi_service.dart';
@@ -112,6 +113,31 @@ class _AbsensiScreenState extends State<AbsensiScreen>
     }
   }
 
+  /// Null berarti gagal (permission ditolak/GPS mati/dll) — pesan sudah
+  /// ditampilkan lewat _onGagal di dalam fungsi ini, caller cukup return.
+  Future<Position?> _pastikanLokasi() async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      _onGagal('Aktifkan GPS terlebih dahulu untuk bisa absen.');
+      return null;
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      _onGagal('Izin lokasi diperlukan untuk absen.');
+      return null;
+    }
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+    } catch (_) {
+      _onGagal('Gagal mendapatkan lokasi. Pastikan GPS aktif lalu coba lagi.');
+      return null;
+    }
+  }
+
   Future<void> _absenSekarang() async {
     if (_isProcessing) return;
     if (!_isFaceServiceReady) {
@@ -135,6 +161,16 @@ class _AbsensiScreenState extends State<AbsensiScreen>
 
     setState(() => _isProcessing = true);
     _detectionTimer?.cancel();
+
+    final position = await _pastikanLokasi();
+    if (position == null) {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+        _startFaceDetectionTimer();
+      }
+      return;
+    }
+
     while (_isTakingPicture) {
       await Future.delayed(const Duration(milliseconds: 30));
     }
@@ -152,7 +188,11 @@ class _AbsensiScreenState extends State<AbsensiScreen>
       }
 
       final embedding = await _faceService.getEmbedding(imagePath, faces.first);
-      final result = await _absensiService.recognize(embedding);
+      final result = await _absensiService.recognize(
+        embedding,
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
 
       if (mounted) {
         Navigator.pushReplacement(
