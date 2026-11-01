@@ -26,6 +26,7 @@ class _DaftarWajahScreenState extends State<DaftarWajahScreen> {
   bool _isFaceServiceReady = false;
   bool _faceDetected = false;
   bool _isProcessing = false;
+  bool _isTakingPicture = false;
   String _statusMsg = 'Memuat model face recognition...';
 
   @override
@@ -86,7 +87,9 @@ class _DaftarWajahScreenState extends State<DaftarWajahScreen> {
   }
 
   Future<void> _detectOnce() async {
+    if (_isTakingPicture) return;
     if (_cameraCtrl == null || !_cameraCtrl!.value.isInitialized) return;
+    _isTakingPicture = true;
     String? path;
     try {
       final xFile = await _cameraCtrl!.takePicture();
@@ -94,8 +97,8 @@ class _DaftarWajahScreenState extends State<DaftarWajahScreen> {
       final faces = await _faceService.detectFaces(path);
       if (mounted) setState(() => _faceDetected = faces.isNotEmpty);
     } catch (_) {
-      // silent fail — jangan ganggu UX
     } finally {
+      _isTakingPicture = false;
       if (path != null) try { File(path).deleteSync(); } catch (_) {}
     }
   }
@@ -124,8 +127,12 @@ class _DaftarWajahScreenState extends State<DaftarWajahScreen> {
       _statusMsg = 'Mengambil & memproses gambar...';
     });
     _detectionTimer?.cancel();
+    while (_isTakingPicture) {
+      await Future.delayed(const Duration(milliseconds: 30));
+    }
 
     String? imagePath;
+    _isTakingPicture = true;
     try {
       final xFile = await _cameraCtrl!.takePicture();
       imagePath = xFile.path;
@@ -159,6 +166,7 @@ class _DaftarWajahScreenState extends State<DaftarWajahScreen> {
         _startLiveDetection(); // restart loop setelah gagal
       }
     } finally {
+      _isTakingPicture = false;
       if (imagePath != null) try { File(imagePath).deleteSync(); } catch (_) {}
       if (mounted) setState(() => _isProcessing = false);
     }

@@ -44,8 +44,8 @@ async function getPaginated(req, res) {
       baseParams
     );
 
-    const [[{ guru }]] = await db.query("SELECT COUNT(*) AS guru FROM users WHERE role = 'guru'");
-    const [[{ siswa }]] = await db.query("SELECT COUNT(*) AS siswa FROM users WHERE role = 'siswa'");
+    const [[{ guru }]] = await db.query("SELECT COUNT(*) AS guru FROM users WHERE role = 'guru' AND status = 'aktif'");
+    const [[{ siswa }]] = await db.query("SELECT COUNT(*) AS siswa FROM users WHERE role = 'siswa' AND status = 'aktif'");
 
     const totalPages = Math.ceil(total / parseInt(limit));
     res.json({ success: true, data: rows, total, page: parseInt(page), totalPages, stats: { guru, siswa } });
@@ -114,14 +114,16 @@ async function update(req, res) {
     }
 
     if (role === 'guru') {
-      await db.query(
-        'UPDATE guru SET nama=?, email=?, no_telepon=?, mata_pelajaran=? WHERE id_user=?',
-        [nama, email, no_telepon, mata_pelajaran, id]
-      );
+      const cols = [], vals = [];
+      if (nama !== undefined)           { cols.push('nama=?');           vals.push(nama); }
+      if (email !== undefined)          { cols.push('email=?');          vals.push(email); }
+      if (no_telepon !== undefined)     { cols.push('no_telepon=?');     vals.push(no_telepon); }
+      if (mata_pelajaran !== undefined) { cols.push('mata_pelajaran=?'); vals.push(mata_pelajaran); }
+      if (cols.length) await db.query(`UPDATE guru SET ${cols.join(',')} WHERE id_user=?`, [...vals, id]);
     } else if (role === 'siswa') {
       if (nama) await db.query('UPDATE siswa SET nama_siswa=? WHERE id_user=?', [nama, id]);
     } else if (role === 'admin') {
-      await db.query('UPDATE admin SET nama=? WHERE id_user=?', [nama, id]);
+      if (nama) await db.query('UPDATE admin SET nama=? WHERE id_user=?', [nama, id]);
     }
 
     res.json({ success: true, message: 'Akun berhasil diperbarui' });
