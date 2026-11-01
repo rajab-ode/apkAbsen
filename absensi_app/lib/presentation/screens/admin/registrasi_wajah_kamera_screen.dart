@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +27,9 @@ class _RegistrasiWajahKameraScreenState
   bool _isFaceServiceReady = false;
   bool _faceDetected = false;
   bool _isProcessing = false;
+  bool _isTakingPicture = false;
   String _statusMsg = 'Memuat model face recognition...';
+  Timer? _detectionTimer;
 
   @override
   void initState() {
@@ -53,6 +56,7 @@ class _RegistrasiWajahKameraScreenState
 
   @override
   void dispose() {
+    _detectionTimer?.cancel();
     _cameraCtrl?.dispose();
     _faceService.dispose();
     super.dispose();
@@ -74,18 +78,27 @@ class _RegistrasiWajahKameraScreenState
   }
 
   void _startLiveDetection() {
-    Future.doWhile(() async {
-      if (!mounted || _isProcessing) return false;
-      await Future.delayed(const Duration(milliseconds: 700));
-      if (!mounted || _isProcessing || _cameraCtrl == null) return false;
-      try {
-        final xFile = await _cameraCtrl!.takePicture();
-        final faces = await _faceService.detectFaces(xFile.path);
-        File(xFile.path).deleteSync();
-        if (mounted) setState(() => _faceDetected = faces.isNotEmpty);
-      } catch (_) {}
-      return mounted && !_isProcessing;
+    _detectionTimer?.cancel();
+    _detectionTimer = Timer.periodic(const Duration(milliseconds: 700), (_) {
+      if (!_isProcessing) _detectOnce();
     });
+  }
+
+  Future<void> _detectOnce() async {
+    if (_isTakingPicture) return;
+    if (_cameraCtrl == null || !_cameraCtrl!.value.isInitialized) return;
+    _isTakingPicture = true;
+    String? path;
+    try {
+      final xFile = await _cameraCtrl!.takePicture();
+      path = xFile.path;
+      final faces = await _faceService.detectFaces(path);
+      if (mounted) setState(() => _faceDetected = faces.isNotEmpty);
+    } catch (_) {
+    } finally {
+      _isTakingPicture = false;
+      if (path != null) try { File(path).deleteSync(); } catch (_) {}
+    }
   }
 
   Future<void> _ambilGambar() async {
@@ -109,7 +122,12 @@ class _RegistrasiWajahKameraScreenState
       _isProcessing = true;
       _statusMsg = 'Mengambil & memproses gambar...';
     });
+    _detectionTimer?.cancel();
+    while (_isTakingPicture) {
+      await Future.delayed(const Duration(milliseconds: 30));
+    }
 
+    _isTakingPicture = true;
     try {
       final xFile = await _cameraCtrl!.takePicture();
       final imagePath = xFile.path;
@@ -149,7 +167,10 @@ class _RegistrasiWajahKameraScreenState
           content: Text(e.toString().replaceFirst('Exception: ', '')),
           backgroundColor: AppTheme.error,
         ));
+        _startLiveDetection();
       }
+    } finally {
+      _isTakingPicture = false;
     }
   }
 
