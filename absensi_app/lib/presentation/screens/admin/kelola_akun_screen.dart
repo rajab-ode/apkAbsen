@@ -112,14 +112,20 @@ class _KelolaAkunScreenState extends State<KelolaAkunScreen>
                 ),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: status,
-                decoration: const InputDecoration(labelText: 'Status'),
-                items: const [
-                  DropdownMenuItem(value: 'aktif', child: Text('Aktif')),
-                  DropdownMenuItem(value: 'nonaktif', child: Text('Nonaktif')),
-                ],
-                onChanged: (v) => setDlg(() => status = v!),
+              InputDecorator(
+                decoration: const InputDecoration(labelText: 'Status', border: OutlineInputBorder()),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: status,
+                    isExpanded: true,
+                    isDense: true,
+                    items: const [
+                      DropdownMenuItem(value: 'aktif', child: Text('Aktif')),
+                      DropdownMenuItem(value: 'nonaktif', child: Text('Nonaktif')),
+                    ],
+                    onChanged: (v) { if (v != null) setDlg(() => status = v); },
+                  ),
+                ),
               ),
             ],
           ),
