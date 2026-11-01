@@ -1,5 +1,8 @@
-# Docs
+# Docs - dokumentasi proyek hidup di DOCS-PROJECTS\absenFR\ (aturan W1),
+# kecuali README.md & CLAUDE.md yang memang tempatnya di repo kode.
 *.md
+!/README.md
+!/CLAUDE.md
 *.docx
 *.pdf
 
