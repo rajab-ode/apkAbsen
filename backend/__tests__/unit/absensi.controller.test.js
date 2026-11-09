@@ -14,6 +14,7 @@ const mockRes = () => {
 // 192-dim unit vector helpers (matches MobileFaceNet embedding size used by the app)
 const unitVec = (dim) => { const v = new Array(192).fill(0); v[dim] = 1.0; return v; };
 const embedding = unitVec(0);
+const siswa1 = { id: 5, role: 'siswa', extraId: 1 };
 
 beforeEach(() => {
   jest.resetAllMocks(); // clearAllMocks leaves unconsumed mockResolvedValueOnce queued, leaking into the next test
@@ -28,13 +29,13 @@ describe('absensiController.recognize', () => {
 
   test('returns 400 when embedding is missing', async () => {
     const res = mockRes();
-    await ctrl.recognize({ body: {} }, res);
+    await ctrl.recognize({ user: siswa1, body: {} }, res);
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
   test('returns 400 when embedding is not 192-dim', async () => {
     const res = mockRes();
-    await ctrl.recognize({ body: { embedding: [1, 2, 3] } }, res);
+    await ctrl.recognize({ user: siswa1, body: { embedding: [1, 2, 3] } }, res);
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
@@ -42,7 +43,7 @@ describe('absensiController.recognize', () => {
     noGeofence();
     db.query.mockResolvedValueOnce([[]]);
     const res = mockRes();
-    await ctrl.recognize({ body: { embedding } }, res);
+    await ctrl.recognize({ user: siswa1, body: { embedding } }, res);
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Belum ada wajah') }));
   });
@@ -56,7 +57,7 @@ describe('absensiController.recognize', () => {
       data_wajah: JSON.stringify(stored),
     }]]);
     const res = mockRes();
-    await ctrl.recognize({ body: { embedding } }, res);
+    await ctrl.recognize({ user: siswa1, body: { embedding } }, res);
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('tidak dikenali') }));
   });
@@ -69,7 +70,7 @@ describe('absensiController.recognize', () => {
       .mockResolvedValueOnce([[]]); // no jadwal_pelajaran row matches kelas+hari+jam
 
     const res = mockRes();
-    await ctrl.recognize({ body: { embedding } }, res);
+    await ctrl.recognize({ user: siswa1, body: { embedding } }, res);
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('jadwal pelajaran') }));
   });
@@ -83,7 +84,7 @@ describe('absensiController.recognize', () => {
       .mockResolvedValueOnce([{ affectedRows: 0 }]); // INSERT IGNORE skipped → already exists today
 
     const res = mockRes();
-    await ctrl.recognize({ body: { embedding } }, res);
+    await ctrl.recognize({ user: siswa1, body: { embedding } }, res);
     expect(res.status).toHaveBeenCalledWith(409);
   });
 
@@ -96,7 +97,7 @@ describe('absensiController.recognize', () => {
       .mockResolvedValueOnce([{ affectedRows: 1, insertId: 10 }]); // INSERT IGNORE succeeded
 
     const res = mockRes();
-    await ctrl.recognize({ body: { embedding } }, res);
+    await ctrl.recognize({ user: siswa1, body: { embedding } }, res);
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       success: true,
@@ -113,7 +114,7 @@ describe('absensiController.recognize', () => {
       .mockResolvedValueOnce([{ affectedRows: 1, insertId: 10 }]);
 
     const res = mockRes();
-    await ctrl.recognize({ body: { embedding } }, res);
+    await ctrl.recognize({ user: siswa1, body: { embedding } }, res);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ status_waktu: 'tepat_waktu' }),
     }));
@@ -134,11 +135,22 @@ describe('absensiController.recognize', () => {
       .mockResolvedValueOnce([{ affectedRows: 1, insertId: 11 }]); // INSERT IGNORE succeeded
 
     const res = mockRes();
-    await ctrl.recognize({ body: { embedding: targetEmbedding } }, res);
+    await ctrl.recognize({ user: siswa1, body: { embedding: targetEmbedding } }, res);
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ nama_siswa: 'Andi' }),
     }));
+  });
+
+  test('returns 403 when the matched face belongs to a different siswa (titip absen)', async () => {
+    noGeofence();
+    db.query.mockResolvedValueOnce([[
+      { id_siswa: 2, nama_siswa: 'Budi', NIS: '002', kelas: 'XI TJKT', foto: null, data_wajah: JSON.stringify(unitVec(0)) },
+    ]]);
+    const res = mockRes();
+    await ctrl.recognize({ user: siswa1, body: { embedding } }, res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(db.query).toHaveBeenCalledTimes(2); // no jadwal lookup, no insert
   });
 
   describe('geofencing', () => {
@@ -148,7 +160,7 @@ describe('absensiController.recognize', () => {
       noGeofence();
       db.query.mockResolvedValueOnce([[]]); // no students, just proving we got past the geofence step
       const res = mockRes();
-      await ctrl.recognize({ body: { embedding, latitude: -8, longitude: 140 } }, res);
+      await ctrl.recognize({ user: siswa1, body: { embedding, latitude: -8, longitude: 140 } }, res);
       // reaches the "no students" check, not blocked by geofence
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Belum ada wajah') }));
     });
@@ -156,7 +168,7 @@ describe('absensiController.recognize', () => {
     test('returns 400 when geofence configured but location missing from request', async () => {
       db.query.mockResolvedValueOnce([[gf]]);
       const res = mockRes();
-      await ctrl.recognize({ body: { embedding } }, res);
+      await ctrl.recognize({ user: siswa1, body: { embedding } }, res);
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Lokasi tidak terdeteksi') }));
     });
@@ -165,7 +177,7 @@ describe('absensiController.recognize', () => {
       db.query.mockResolvedValueOnce([[gf]]);
       const res = mockRes();
       // Jakarta-ish coords, hundreds of km from the school's Kendari coords
-      await ctrl.recognize({ body: { embedding, latitude: -6.2, longitude: 106.8 } }, res);
+      await ctrl.recognize({ user: siswa1, body: { embedding, latitude: -6.2, longitude: 106.8 } }, res);
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('luar area sekolah') }));
     });
@@ -174,7 +186,7 @@ describe('absensiController.recognize', () => {
       db.query.mockResolvedValueOnce([[gf]]);
       db.query.mockResolvedValueOnce([[]]); // no students registered — proves geofence passed
       const res = mockRes();
-      await ctrl.recognize({ body: { embedding, latitude: -3.9778, longitude: 122.5194 } }, res);
+      await ctrl.recognize({ user: siswa1, body: { embedding, latitude: -3.9778, longitude: 122.5194 } }, res);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Belum ada wajah') }));
     });
   });
@@ -199,8 +211,15 @@ describe('absensiController.getMySiswa', () => {
   test('returns absensi list for a student', async () => {
     db.query.mockResolvedValueOnce([[{ id_absensi: 1, status: 'hadir' }]]);
     const res = mockRes();
-    await ctrl.getMySiswa({ params: { idSiswa: 1 } }, res);
+    await ctrl.getMySiswa({ user: siswa1, params: { idSiswa: '1' } }, res);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+  });
+
+  test('returns 403 when a siswa requests another siswa\'s riwayat', async () => {
+    const res = mockRes();
+    await ctrl.getMySiswa({ user: siswa1, params: { idSiswa: '2' } }, res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(db.query).not.toHaveBeenCalled();
   });
 });
 

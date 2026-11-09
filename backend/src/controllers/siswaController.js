@@ -32,9 +32,18 @@ async function getAll(req, res) {
 }
 
 async function getById(req, res) {
+  if (req.user.role === 'siswa' && Number(req.params.id) !== req.user.extraId) {
+    return res.status(403).json({ success: false, message: 'Anda hanya bisa melihat data sendiri' });
+  }
   try {
+    // Embedding asli sengaja tidak dikirim: siapa pun yang memegangnya bisa lolos
+    // /absensi/recognize. data_wajah diganti penanda supaya APK lama (<= 1.0.1, yang
+    // mengecek data_wajah != null saat login) tetap tahu wajahnya sudah terdaftar.
     const [rows] = await db.query(
-      'SELECT *, (data_wajah IS NOT NULL) AS wajah_terdaftar FROM siswa WHERE id_siswa = ?',
+      `SELECT id_siswa, id_user, nama_siswa, NIS, kelas, jurusan, jenis_kelamin, alamat,
+              no_telepon, foto, created_at, (data_wajah IS NOT NULL) AS wajah_terdaftar,
+              IF(data_wajah IS NULL, NULL, 'terdaftar') AS data_wajah
+       FROM siswa WHERE id_siswa = ?`,
       [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ success: false, message: 'Siswa tidak ditemukan' });

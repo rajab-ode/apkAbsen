@@ -79,6 +79,12 @@ async function recognize(req, res) {
       return res.status(404).json({ success: false, message: 'Wajah tidak dikenali. Pastikan wajah terlihat jelas.' });
     }
 
+    // Wajah yang cocok harus milik siswa yang sedang login — tanpa ini satu akun bisa
+    // mengabsenkan siswa lain (titip absen) cukup dengan mengarahkan kamera ke wajahnya
+    if (bestMatch.id_siswa !== req.user.extraId) {
+      return res.status(403).json({ success: false, message: 'Wajah tidak sesuai dengan akun yang sedang login' });
+    }
+
     const { date: today, time: now, hari } = getWITADateTime();
 
     // Cocokkan jadwal pelajaran kelas siswa ini di hari+jam sekarang — tanpa jadwal yang
@@ -184,6 +190,9 @@ async function getAll(req, res) {
 
 async function getMySiswa(req, res) {
   const idSiswa = req.params.idSiswa;
+  if (req.user.role === 'siswa' && Number(idSiswa) !== req.user.extraId) {
+    return res.status(403).json({ success: false, message: 'Anda hanya bisa melihat riwayat sendiri' });
+  }
   try {
     const [rows] = await db.query(
       `SELECT a.id_absensi, s.nama_siswa, s.NIS, s.foto, a.tanggal, a.waktu, a.status,
