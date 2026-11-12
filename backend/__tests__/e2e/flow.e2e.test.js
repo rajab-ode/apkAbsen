@@ -12,10 +12,11 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const request = require('supertest');
 const app = require('../../app');
+const { invalidateEmbeddingCache } = require('../../src/controllers/absensiController');
 
 process.env.JWT_SECRET = 'test_secret';
 
-const unitVec = (dim) => { const v = new Array(128).fill(0); v[dim] = 1.0; return v; };
+const unitVec = (dim) => { const v = new Array(192).fill(0); v[dim] = 1.0; return v; };
 
 // Shared token state across scenario steps
 let adminToken, guruToken, siswaToken;
@@ -35,6 +36,10 @@ jwt.verify.mockImplementation((token) => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // clearAllMocks keeps unconsumed mockResolvedValueOnce values; reset db.query so they
+  // can't leak into the next step. jwt/bcrypt keep their implementations above.
+  db.query.mockReset();
+  invalidateEmbeddingCache();
   adminToken = 'admin_token';
   guruToken  = 'guru_token';
   siswaToken = 'siswa_token';
@@ -104,9 +109,10 @@ describe('Scenario 3 — Siswa absensi flow', () => {
 
   test('Step 1: siswa submits face, gets recognized and marked hadir', async () => {
     db.query
-      .mockResolvedValueOnce([[{ id_siswa: 3, nama_siswa: 'Budi', NIS: '001', foto: null, data_wajah: JSON.stringify(stored) }]])
-      .mockResolvedValueOnce([[]])                     // no existing absensi today
-      .mockResolvedValueOnce([{ insertId: 15 }]);      // insert absensi
+      .mockResolvedValueOnce([[]])                     // geofence not configured
+      .mockResolvedValueOnce([[{ id_siswa: 3, nama_siswa: 'Budi', NIS: '001', kelas: 'XI', jurusan: 'TKJ', foto: null, data_wajah: JSON.stringify(stored) }]])
+      .mockResolvedValueOnce([[{ id_jadwal: 1, mata_pelajaran: 'Matematika', jam_mulai: '00:00:00' }]])
+      .mockResolvedValueOnce([{ affectedRows: 1, insertId: 15 }]); // INSERT IGNORE succeeded
 
     const res = await request(app)
       .post('/api/absensi/recognize')
@@ -119,8 +125,10 @@ describe('Scenario 3 — Siswa absensi flow', () => {
 
   test('Step 2: siswa cannot absen twice on the same day', async () => {
     db.query
-      .mockResolvedValueOnce([[{ id_siswa: 3, nama_siswa: 'Budi', NIS: '001', foto: null, data_wajah: JSON.stringify(stored) }]])
-      .mockResolvedValueOnce([[{ id_absensi: 15 }]]); // already exists
+      .mockResolvedValueOnce([[]])                     // geofence not configured
+      .mockResolvedValueOnce([[{ id_siswa: 3, nama_siswa: 'Budi', NIS: '001', kelas: 'XI', jurusan: 'TKJ', foto: null, data_wajah: JSON.stringify(stored) }]])
+      .mockResolvedValueOnce([[{ id_jadwal: 1, mata_pelajaran: 'Matematika', jam_mulai: '00:00:00' }]])
+      .mockResolvedValueOnce([{ affectedRows: 0 }]);   // INSERT IGNORE skipped → already recorded
 
     const res = await request(app)
       .post('/api/absensi/recognize')

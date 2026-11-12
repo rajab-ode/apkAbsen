@@ -10,7 +10,7 @@ const mockRes = () => {
   return res;
 };
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => jest.resetAllMocks());
 
 describe('izinController.ajukan', () => {
   const siswaReq = (overrides = {}) => ({
@@ -78,8 +78,15 @@ describe('izinController.getMySiswa', () => {
   test('returns izin list for a student', async () => {
     db.query.mockResolvedValueOnce([[{ id_izin: 1 }]]);
     const res = mockRes();
-    await ctrl.getMySiswa({ params: { idSiswa: 1 } }, res);
+    await ctrl.getMySiswa({ user: { role: 'siswa', extraId: 1 }, params: { idSiswa: '1' } }, res);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+  });
+
+  test('returns 403 when a siswa requests another siswa\'s izin', async () => {
+    const res = mockRes();
+    await ctrl.getMySiswa({ user: { role: 'siswa', extraId: 1 }, params: { idSiswa: '2' } }, res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(db.query).not.toHaveBeenCalled();
   });
 });
 

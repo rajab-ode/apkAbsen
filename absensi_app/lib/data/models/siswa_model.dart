@@ -36,6 +36,9 @@ class SiswaModel {
         alamat: j['alamat'] ?? '',
         noTelepon: j['no_telepon'] ?? '',
         fotoPath: j['foto'] != null ? '${j['foto']}' : null,
-        wajahTerdaftar: j['data_wajah'] != null,
+        // Backend mengirim flag wajah_terdaftar (MySQL: 0/1), bukan embedding mentahnya
+        wajahTerdaftar: j['wajah_terdaftar'] == 1 ||
+            j['wajah_terdaftar'] == true ||
+            j['data_wajah'] != null,
       );
 }
