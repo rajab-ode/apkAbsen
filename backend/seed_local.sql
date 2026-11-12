@@ -27,8 +27,8 @@ FROM users WHERE username = 'guru1';
 -- Dua siswa: satu nanti dipasangkan akun, satu sengaja dibiarkan tanpa akun
 -- supaya filter "no_account=true" di Kelola Akun ada isinya saat diuji.
 INSERT IGNORE INTO siswa (nama_siswa, NIS, kelas, jurusan, jenis_kelamin, alamat, no_telepon) VALUES
-('Ahmad Fauzi',  '2024001', 'XI', 'TKJ', 'L', 'Jl. Kendari No. 1', '081200000011'),
-('Siti Aminah',  '2024002', 'XI', 'TKJ', 'P', 'Jl. Kendari No. 2', '081200000012');
+('Ahmad Fauzi',  '2024001', 'XI', 'TJKT', 'L', 'Jl. Kendari No. 1', '081200000011'),
+('Siti Aminah',  '2024002', 'XI', 'TJKT', 'P', 'Jl. Kendari No. 2', '081200000012');
 
 -- ============ AKUN SISWA ============
 INSERT IGNORE INTO users (username, password, role, status) VALUES
@@ -47,7 +47,7 @@ WHERE NIS = '2024001';
 -- (jam_mulai sudah lewat). Untuk menguji 'tepat_waktu', ubah jam_mulai salah
 -- satu baris ke beberapa menit DI DEPAN waktu WITA sekarang.
 INSERT IGNORE INTO jadwal_pelajaran (id_guru, kelas, jurusan, hari, jam_mulai, jam_selesai, mata_pelajaran)
-SELECT g.id_guru, 'XI', 'TKJ', h.hari, '06:00:00', '17:00:00', 'Jaringan Komputer'
+SELECT g.id_guru, 'XI', 'TJKT', h.hari, '06:00:00', '17:00:00', 'Jaringan Komputer'
 FROM guru g
 CROSS JOIN (
   SELECT 'Senin' AS hari UNION ALL SELECT 'Selasa' UNION ALL SELECT 'Rabu'
