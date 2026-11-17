@@ -117,7 +117,7 @@ Dari `database.sql` + `seed_local.sql`:
 |:---|:---|:---|
 | `admin` | `admin123` | admin |
 | `guru1` | `guru123` | guru — 6 jadwal, Senin–Sabtu |
-| `siswa1` | `siswa123` | siswa — NIS 2024001, kelas XI TKJ |
+| `siswa1` | `siswa123` | siswa — NIS 2024001, kelas XI TJKT |
 
 `data_wajah` **tidak bisa** di-seed: embedding hanya dihasilkan model TFLite di
 perangkat. Sebelum wajah didaftarkan lewat aplikasi, `POST /api/absensi/recognize`

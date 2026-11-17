@@ -1,7 +1,8 @@
-require('dotenv').config();
+const path = require('path');
+// Path eksplisit: tanpa ini .env hanya terbaca kalau node dijalankan dari folder backend
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 
 const app = express();
 
@@ -44,6 +45,9 @@ app.use((err, req, res, next) => {
 // Only bind port when run directly (node app.js / nodemon).
 // When required by tests or Phusion Passenger, skip listen().
 if (require.main === module) {
+  if (!process.env.JWT_SECRET) {
+    console.error('[PERINGATAN] JWT_SECRET kosong: login akan gagal. Isi JWT_SECRET di backend/.env');
+  }
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => console.log(`Server berjalan di port ${PORT}`));
 }
