@@ -155,6 +155,12 @@ void main() {
       final m = SiswaModel.fromJson({...json, 'data_wajah': null});
       expect(m.wajahTerdaftar, isFalse);
     });
+
+    test('wajahTerdaftar reads the wajah_terdaftar flag sent by the API', () {
+      final base = {...json}..remove('data_wajah');
+      expect(SiswaModel.fromJson({...base, 'wajah_terdaftar': 1}).wajahTerdaftar, isTrue);
+      expect(SiswaModel.fromJson({...base, 'wajah_terdaftar': 0}).wajahTerdaftar, isFalse);
+    });
   });
 
   // ── AkunModel ─────────────────────────────────────────────────────────────

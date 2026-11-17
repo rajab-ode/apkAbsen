@@ -52,6 +52,9 @@ async function getAll(req, res) {
 
 async function getMySiswa(req, res) {
   const idSiswa = req.params.idSiswa;
+  if (req.user.role === 'siswa' && Number(idSiswa) !== req.user.extraId) {
+    return res.status(403).json({ success: false, message: 'Anda hanya bisa melihat riwayat sendiri' });
+  }
   try {
     const [rows] = await db.query(
       `SELECT i.id_izin, s.nama_siswa, s.NIS, i.tanggal, i.jenis, i.file_surat, i.status

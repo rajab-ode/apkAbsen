@@ -5,10 +5,11 @@ const db = require('../../src/config/db');
 const jwt = require('jsonwebtoken');
 const request = require('supertest');
 const app = require('../../app');
+const { invalidateEmbeddingCache } = require('../../src/controllers/absensiController');
 
 process.env.JWT_SECRET = 'test_secret';
 
-const unitVec = (dim) => { const v = new Array(128).fill(0); v[dim] = 1.0; return v; };
+const unitVec = (dim) => { const v = new Array(192).fill(0); v[dim] = 1.0; return v; };
 
 // JWT verify mock: return payload matching the Authorization header value
 jwt.verify.mockImplementation((token) => {
@@ -18,7 +19,11 @@ jwt.verify.mockImplementation((token) => {
   throw new Error('invalid');
 });
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+  // mockReset (not clear) so unconsumed mockResolvedValueOnce values can't leak between tests
+  db.query.mockReset();
+  invalidateEmbeddingCache();
+});
 
 const authHeader = (token) => ({ Authorization: `Bearer ${token}` });
 
@@ -47,9 +52,10 @@ describe('POST /api/absensi/recognize', () => {
   test('returns 201 on successful recognition', async () => {
     const stored = unitVec(0);
     db.query
-      .mockResolvedValueOnce([[{ id_siswa: 3, nama_siswa: 'Andi', NIS: '001', foto: null, data_wajah: JSON.stringify(stored) }]])
-      .mockResolvedValueOnce([[]])
-      .mockResolvedValueOnce([{ insertId: 10 }]);
+      .mockResolvedValueOnce([[]]) // geofence not configured
+      .mockResolvedValueOnce([[{ id_siswa: 3, nama_siswa: 'Andi', NIS: '001', kelas: 'XI', jurusan: 'TKJ', foto: null, data_wajah: JSON.stringify(stored) }]])
+      .mockResolvedValueOnce([[{ id_jadwal: 1, mata_pelajaran: 'Matematika', jam_mulai: '00:00:00' }]])
+      .mockResolvedValueOnce([{ affectedRows: 1, insertId: 10 }]);
 
     const res = await request(app)
       .post('/api/absensi/recognize')
@@ -58,6 +64,33 @@ describe('POST /api/absensi/recognize', () => {
 
     expect(res.status).toBe(201);
     expect(res.body.data.nama_siswa).toBe('Andi');
+  });
+
+  test('returns 403 when the face belongs to another siswa', async () => {
+    db.query
+      .mockResolvedValueOnce([[]])
+      .mockResolvedValueOnce([[{ id_siswa: 4, nama_siswa: 'Budi', NIS: '002', foto: null, data_wajah: JSON.stringify(unitVec(0)) }]]);
+
+    const res = await request(app)
+      .post('/api/absensi/recognize')
+      .set(authHeader('siswa_token'))
+      .send({ embedding: unitVec(0) });
+
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('GET /api/absensi/siswa/:idSiswa', () => {
+  test('returns 403 when a siswa reads another siswa\'s riwayat', async () => {
+    const res = await request(app).get('/api/absensi/siswa/4').set(authHeader('siswa_token'));
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('GET /api/siswa', () => {
+  test('returns 403 for siswa role (list exposes other students\' personal data)', async () => {
+    const res = await request(app).get('/api/siswa').set(authHeader('siswa_token'));
+    expect(res.status).toBe(403);
   });
 });
 

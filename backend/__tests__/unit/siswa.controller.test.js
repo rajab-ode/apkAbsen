@@ -10,7 +10,9 @@ const mockRes = () => {
   return res;
 };
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => jest.resetAllMocks());
+
+const admin = { id: 1, role: 'admin', extraId: null };
 
 describe('siswaController.getAll', () => {
   test('returns paginated list', async () => {
@@ -29,7 +31,7 @@ describe('siswaController.getById', () => {
   test('returns 404 when not found', async () => {
     db.query.mockResolvedValueOnce([[]]);
     const res = mockRes();
-    await ctrl.getById({ params: { id: 999 } }, res);
+    await ctrl.getById({ user: admin, params: { id: '999' } }, res);
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
@@ -37,8 +39,16 @@ describe('siswaController.getById', () => {
     const siswa = { id_siswa: 1, nama_siswa: 'Andi', NIS: '001' };
     db.query.mockResolvedValueOnce([[siswa]]);
     const res = mockRes();
-    await ctrl.getById({ params: { id: 1 } }, res);
+    await ctrl.getById({ user: admin, params: { id: '1' } }, res);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true, data: siswa }));
+    expect(db.query.mock.calls[0][0]).not.toMatch(/SELECT \*/); // data_wajah must not leak
+  });
+
+  test('returns 403 when a siswa requests another siswa', async () => {
+    const res = mockRes();
+    await ctrl.getById({ user: { role: 'siswa', extraId: 1 }, params: { id: '2' } }, res);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(db.query).not.toHaveBeenCalled();
   });
 });
 

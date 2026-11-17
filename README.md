@@ -37,6 +37,26 @@ Apache/PHP tidak diperlukan kecuali ingin memakai phpMyAdmin.
 
 > Jangan menjalankan Docker dan XAMPP bersamaan — keduanya mengikat port 3306.
 
+### Cara cepat: `absen.bat`
+
+Satu skrip di root repo mengerjakan langkah 1–3 di bawah secara otomatis: cek
+Node/Flutter/XAMPP, `npm install` & `flutter pub get` bila perlu, membuat
+`backend/.env` (JWT_SECRET acak), menyalakan MySQL XAMPP, membuat database dan
+mengimpor `database.sql` + `seed_local.sql` **hanya kalau tabelnya belum ada**.
+
+```bash
+absen.bat                         # install -> build APK -> start backend -> pasang APK ke HP via adb
+absen.bat start                   # install -> start backend -> flutter run (debug, hot reload)
+absen.bat start -Target emulator  # pakai 10.0.2.2 untuk emulator Android
+absen.bat build                   # hanya build APK
+absen.bat backend                 # hanya backend + database
+absen.bat install                 # hanya cek & instal
+```
+
+Opsi: `-XamppPath C:\xampp` (default `D:\xampp`), `-ServerUrl http://IP:3000`
+(default: IP LAN PC ini), `-NoSeed`. APK hasil skrip menunjuk ke server lokal —
+bukan untuk dibagikan.
+
 ### 1. Database
 
 Nyalakan MySQL dari **XAMPP Control Panel**, lalu:
@@ -97,7 +117,7 @@ Dari `database.sql` + `seed_local.sql`:
 |:---|:---|:---|
 | `admin` | `admin123` | admin |
 | `guru1` | `guru123` | guru — 6 jadwal, Senin–Sabtu |
-| `siswa1` | `siswa123` | siswa — NIS 2024001, kelas XI TKJ |
+| `siswa1` | `siswa123` | siswa — NIS 2024001, kelas XI TJKT |
 
 `data_wajah` **tidak bisa** di-seed: embedding hanya dihasilkan model TFLite di
 perangkat. Sebelum wajah didaftarkan lewat aplikasi, `POST /api/absensi/recognize`
